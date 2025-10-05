@@ -160,7 +160,7 @@ public class ProviderConfigurationTests : IDisposable
     public async Task OpenRouterChatProvider_MakesSuccessfulApiCall()
     {
         // Arrange
-        var apiKey = "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"; // Your actual API key
+        var apiKey = "sk-or-v1"; // Your actual API key
         var provider = new OpenRouterChatProvider(apiKey, "google/gemini-2.5-flash-lite-preview-09-2025");
 
         var request = new ChatRequestDto
@@ -190,7 +190,7 @@ public class ProviderConfigurationTests : IDisposable
     public async Task OpenRouterChatProvider_StreamingWorksCorrectly()
     {
         // Arrange
-        var apiKey = "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"; // Your actual API key
+        var apiKey = ""; // Your actual API key
         var provider = new OpenRouterChatProvider(apiKey, "google/gemini-2.5-flash-lite-preview-09-2025");
 
         var request = new ChatRequestDto
@@ -223,7 +223,7 @@ public class ProviderConfigurationTests : IDisposable
     public async Task TestOpenRouterApiKeyFormat()
     {
         // Arrange
-        var apiKey = "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";
+        var apiKey = "sk-or-v1-";
         var client = new HttpClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
 
