@@ -20,12 +20,7 @@ public class OpenRouterChatProvider : IChatCompletionService
     {
         _modelId = modelId;
 
-        // Debug logging - check if API key is being passed correctly
-        Console.WriteLine($"[DEBUG] OpenRouterChatProvider constructor called");
-        Console.WriteLine($"[DEBUG] ModelId: {_modelId}");
-        Console.WriteLine($"[DEBUG] API Key provided: {(string.IsNullOrEmpty(apiKey) ? "NULL or EMPTY" : $"{apiKey.Substring(0, Math.Min(10, apiKey.Length))}... (length: {apiKey.Length})")}");
-        Console.WriteLine($"[DEBUG] API Key starts with 'sk-or-v1-': {apiKey?.StartsWith("sk-or-v1-")}");
-        Console.WriteLine($"[DEBUG] API Key length: {apiKey?.Length}");
+        // Validate API key is not null or empty
 
         // Validate API key is not null or empty
         if (string.IsNullOrEmpty(apiKey))
@@ -44,8 +39,6 @@ public class OpenRouterChatProvider : IChatCompletionService
 
         // Convert to IChatClient abstraction
         _chatClient = chatClient.AsIChatClient();
-
-        Console.WriteLine($"[DEBUG] OpenRouterChatProvider initialized successfully");
     }
 
     public async Task<ChatCompletionService.Domain.Entities.ChatResponse> SendMessageAsync(ChatRequestDto request, CancellationToken cancellationToken = default)

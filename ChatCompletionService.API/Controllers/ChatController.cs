@@ -74,9 +74,6 @@ public class ChatController : ControllerBase
 
         try
         {
-            Console.WriteLine($"[DEBUG] ChatController.StreamMessage - Provider: {providerType}, Model: {request.ModelId}");
-            Console.WriteLine($"[DEBUG] ChatController.StreamMessage - Request messages count: {request.Messages?.Count}");
-
             var provider = _providerFactory.CreateProvider(providerType, request.ModelId);
             var stream = provider.StreamMessageAsync(request, HttpContext.RequestAborted);
 

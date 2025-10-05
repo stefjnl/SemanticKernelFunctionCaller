@@ -19,12 +19,7 @@ public class ChatProviderFactory : IProviderFactory
     public IChatCompletionService CreateProvider(ProviderType provider, string modelId)
     {
         var providerName = provider.ToString();
-        Console.WriteLine($"[DEBUG] ChatProviderFactory.CreateProvider called for: {providerName}, model: {modelId}");
-
         var providerConfig = _configManager.GetProviderConfig(providerName);
-
-        Console.WriteLine($"[DEBUG] Provider config loaded - API Key: {(string.IsNullOrEmpty(providerConfig.ApiKey) ? "NULL or EMPTY" : $"{providerConfig.ApiKey.Substring(0, Math.Min(10, providerConfig.ApiKey.Length))}... (length: {providerConfig.ApiKey.Length})")}");
-        Console.WriteLine($"[DEBUG] Provider config loaded - Endpoint: {providerConfig.Endpoint}");
 
         return provider switch
         {
