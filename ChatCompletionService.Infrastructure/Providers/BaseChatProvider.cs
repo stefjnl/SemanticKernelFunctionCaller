@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using ChatCompletionService.Application.DTOs;
 using ChatCompletionService.Application.Interfaces;
+using Microsoft.Extensions.Logging;
 using ChatCompletionService.Domain.Entities;
 using ChatCompletionService.Domain.ValueObjects;
 using ChatCompletionService.Infrastructure.Configuration;
@@ -13,21 +14,24 @@ namespace ChatCompletionService.Infrastructure.Providers;
 
 public abstract class BaseChatProvider : IChatCompletionService
 {
-    protected readonly IChatClient _chatClient;
+    protected IChatClient _chatClient;
     protected readonly string _modelId;
     protected readonly string _providerName;
+    protected ILogger _logger;
 
-    protected BaseChatProvider(ProviderConfig config, string modelId, string providerName)
+    protected BaseChatProvider(ProviderConfig config, string modelId, string providerName, ILogger logger) : this(providerName, logger, modelId)
     {
         ArgumentNullException.ThrowIfNull(config);
-        ArgumentNullException.ThrowIfNull(modelId);
-        ArgumentNullException.ThrowIfNull(providerName);
-
-        _modelId = modelId;
-        _providerName = providerName;
-
         ValidateApiKey(config.ApiKey);
         _chatClient = CreateChatClient(config.ApiKey, modelId, config.Endpoint);
+    }
+    
+    protected BaseChatProvider(string providerName, ILogger logger, string modelId)
+    {
+        _providerName = providerName;
+        _logger = logger;
+        _modelId = modelId;
+        _chatClient = null!;
     }
 
     public virtual async Task<Domain.Entities.ChatResponse> SendMessageAsync(
@@ -90,7 +94,7 @@ public abstract class BaseChatProvider : IChatCompletionService
             throw new ArgumentNullException(nameof(request.Messages));
     }
 
-    private static IChatClient CreateChatClient(string apiKey, string modelId, string endpoint)
+    protected static IChatClient CreateChatClient(string apiKey, string modelId, string endpoint)
     {
         var chatClient = new OpenAI.Chat.ChatClient(
             modelId,

@@ -13,14 +13,28 @@ public class ChatProviderFactory : IProviderFactory
     private readonly IOptions<ProviderSettings> _providerSettings;
     private readonly Dictionary<ProviderType, Func<string, IChatCompletionService>> _providerFactories;
 
-    public ChatProviderFactory(IOptions<ProviderSettings> providerSettings, ILogger<ChatProviderFactory> logger)
+    public ChatProviderFactory(IOptions<ProviderSettings> providerSettings, ILogger<ChatProviderFactory> logger, ILoggerFactory loggerFactory)
     {
         _logger = logger;
         _providerSettings = providerSettings;
+        var configurableLogger = loggerFactory.CreateLogger<ConfigurableOpenAIChatProvider>();
+
         _providerFactories = new Dictionary<ProviderType, Func<string, IChatCompletionService>>
         {
-            { ProviderType.OpenRouter, (modelId) => new OpenRouterChatProvider(providerSettings.Value.OpenRouter, modelId) },
-            { ProviderType.NanoGPT, (modelId) => new NanoGptChatProvider(providerSettings.Value.NanoGPT, modelId) }
+            {
+                ProviderType.OpenRouter, (modelId) =>
+                {
+                    var config = providerSettings.Value.OpenRouter;
+                    return new ConfigurableOpenAIChatProvider(config.ApiKey, modelId, config.Endpoint, "OpenRouter", configurableLogger);
+                }
+            },
+            {
+                ProviderType.NanoGPT, (modelId) =>
+                {
+                    var config = providerSettings.Value.NanoGPT;
+                    return new ConfigurableOpenAIChatProvider(config.ApiKey, modelId, config.Endpoint, "NanoGpt", configurableLogger);
+                }
+            }
         };
     }
 
