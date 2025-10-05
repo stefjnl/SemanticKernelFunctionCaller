@@ -17,9 +17,8 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Register the provider factory as a singleton with configuration.
-builder.Services.AddSingleton<IProviderFactory>(sp =>
-    new ChatProviderFactory(builder.Configuration));
+// Register the provider factory with proper DI
+builder.Services.AddSingleton<IProviderFactory, ChatProviderFactory>();
 
 // Configure CORS for development.
 builder.Services.AddCors(options =>

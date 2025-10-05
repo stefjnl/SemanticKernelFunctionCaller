@@ -4,29 +4,42 @@ using ChatCompletionService.Domain.Enums;
 using ChatCompletionService.Infrastructure.Configuration;
 using ChatCompletionService.Infrastructure.Providers;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace ChatCompletionService.Infrastructure.Factories;
 
 public class ChatProviderFactory : IProviderFactory
 {
+    private readonly IConfiguration _configuration;
+    private readonly ILogger<ChatProviderFactory> _logger;
     private readonly ProviderConfigurationManager _configManager;
 
-    public ChatProviderFactory(IConfiguration configuration)
+    public ChatProviderFactory(IConfiguration configuration, ILogger<ChatProviderFactory> logger)
     {
+        _configuration = configuration;
+        _logger = logger;
         _configManager = new ProviderConfigurationManager(configuration);
     }
 
     public IChatCompletionService CreateProvider(ProviderType provider, string modelId)
     {
-        var providerName = provider.ToString();
-        var providerConfig = _configManager.GetProviderConfig(providerName);
-
-        return provider switch
+        try
         {
-            ProviderType.OpenRouter => new OpenRouterChatProvider(providerConfig.ApiKey, modelId),
-            ProviderType.NanoGPT => new NanoGptChatProvider(providerConfig.ApiKey, modelId),
-            _ => throw new NotSupportedException($"Provider {provider} is not supported.")
-        };
+            var providerName = provider.ToString();
+            var providerConfig = _configManager.GetProviderConfig(providerName);
+
+            return provider switch
+            {
+                ProviderType.OpenRouter => new OpenRouterChatProvider(providerConfig, modelId),
+                ProviderType.NanoGPT => new NanoGptChatProvider(providerConfig, modelId),
+                _ => throw new NotSupportedException($"Provider {provider} is not supported.")
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to create provider {Provider} with model {Model}", provider, modelId);
+            throw;
+        }
     }
 
     public IEnumerable<ProviderInfoDto> GetAvailableProviders()
