@@ -1,0 +1,74 @@
+# .NET Core
+*.user
+*.suo
+*.cache
+*.diff
+*.merge
+*.pdb
+*.aps
+*.pch
+*.vs
+*.vspscc
+*_i.c
+*_p.c
+*.ncb
+*.tlb
+*.tlh
+*.tmp
+*.tmp_proj
+*.log
+*.vspscc
+*.vssscc
+.builds
+*.pidb
+*.svclog
+*.scc
+*.DotSettings.user
+.project
+.DS_Store
+Thumbs.db
+
+# .NET Core Build Output
+bin/
+obj/
+*.dll
+*.exe
+*.exe.config
+*.pdb
+
+# Rider
+.idea/
+
+# Visual Studio Code
+.vscode/
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Development configuration files with potential secrets
+**/appsettings.Development.json
+**/appsettings.*.json
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+
+# Testing
+*.trx
+*.coverage
+*.coveragexml
+
+# Logs
+logs/
+*.log
+
+# Docker
+.dockerignore
+
+# OS generated files
+.DS_Store
+Thumbs.db
+Desktop.ini

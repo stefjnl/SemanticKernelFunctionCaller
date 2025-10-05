@@ -1,0 +1,24 @@
+{
+  "Providers": {
+    "OpenRouter": {
+      "ApiKey": "test-openrouter-key",
+      "Endpoint": "https://openrouter.ai/api/v1/",
+      "Models": [
+        {
+          "Id": "test-model",
+          "DisplayName": "Test Model"
+        }
+      ]
+    },
+    "NanoGPT": {
+      "ApiKey": "test-nanogpt-key",
+      "Endpoint": "https://api.nanogpt.com/v1/chat/completions",
+      "Models": [
+        {
+          "Id": "test-nanogpt-model",
+          "DisplayName": "Test NanoGPT Model"
+        }
+      ]
+    }
+  }
+}
