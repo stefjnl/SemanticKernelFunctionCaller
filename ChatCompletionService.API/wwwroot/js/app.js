@@ -128,8 +128,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (data.error) {
                                 throw new Error(data.error);
                             }
-                            if (!data.isFinal) {
-                                fullResponse += data.content;
+                            // Handle both Content/Content and content (backend sends PascalCase)
+                            const content = data.Content || data.content || '';
+                            const isFinal = data.IsFinal !== undefined ? data.IsFinal : data.isFinal;
+
+                            if (!isFinal) {
+                                fullResponse += content;
                                 assistantMessageElement.textContent = fullResponse;
                                 chatWindow.scrollTop = chatWindow.scrollHeight;
                             }
