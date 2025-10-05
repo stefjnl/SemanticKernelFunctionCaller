@@ -21,11 +21,8 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Register the provider factory with proper DI
-builder.Services.AddSingleton<IProviderFactory, ChatProviderFactory>();
-
-// Add Microsoft.Extensions.AI chat client with proper middleware
-builder.Services.AddOpenRouterChatClient(builder.Configuration);
+// Register providers and configurations
+builder.Services.AddProviderServices(builder.Configuration);
 
 // Configure CORS for development.
 builder.Services.AddCors(options =>

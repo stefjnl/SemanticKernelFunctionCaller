@@ -69,7 +69,7 @@ public abstract class BaseChatProvider : IChatCompletionService
 
     public virtual ProviderMetadata GetMetadata()
     {
-        return new ProviderMetadata { ProviderName = _providerName };
+        return new ProviderMetadata { Id = _providerName, DisplayName = _providerName };
     }
 
     // Virtual with default - providers can override if needed

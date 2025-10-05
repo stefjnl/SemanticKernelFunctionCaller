@@ -44,4 +44,14 @@ public static class ModelConverter
             Timestamp = DateTime.UtcNow
         };
     }
+
+    public static Domain.ValueObjects.ModelConfiguration ToModelConfiguration(Configuration.ModelInfo modelInfo)
+    {
+        return new Domain.ValueObjects.ModelConfiguration
+        {
+            Id = modelInfo.Id,
+            DisplayName = modelInfo.DisplayName,
+            ContextWindow = 0 // Or get this from config if available
+        };
+    }
 }

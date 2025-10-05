@@ -12,42 +12,41 @@ public class ChatController : ControllerBase
 {
     private readonly IProviderFactory _providerFactory;
     private readonly ILogger<ChatController> _logger;
+    private readonly IProviderConfigurationReader _providerReader;
+    private readonly IModelCatalog _modelCatalog;
 
-    public ChatController(IProviderFactory providerFactory, ILogger<ChatController> logger)
+    public ChatController(
+        IProviderFactory providerFactory,
+        ILogger<ChatController> logger,
+        IProviderConfigurationReader providerReader,
+        IModelCatalog modelCatalog)
     {
         _providerFactory = providerFactory;
         _logger = logger;
+        _providerReader = providerReader;
+        _modelCatalog = modelCatalog;
     }
 
     [HttpGet("providers")]
     public IActionResult GetProviders()
     {
-        var providers = _providerFactory.GetAvailableProviders();
+        var providers = _providerReader.GetProviders();
         return Ok(providers);
     }
 
     [HttpGet("providers/{providerId}/models")]
     public IActionResult GetModels(string providerId)
     {
-        if (Enum.TryParse<ProviderType>(providerId, true, out var providerType))
-        {
-            var models = _providerFactory.GetModelsForProvider(providerType);
-            return Ok(models);
-        }
-        return BadRequest("Invalid provider ID");
+        var models = _modelCatalog.GetModels(providerId);
+        return Ok(models);
     }
 
     [HttpPost("send")]
     public async Task<IActionResult> SendMessage(ChatRequestDto request)
     {
-        if (!Enum.TryParse<ProviderType>(request.ProviderId, true, out var providerType))
-        {
-            return BadRequest("Invalid provider ID");
-        }
-
         try
         {
-            var provider = _providerFactory.CreateProvider(providerType, request.ModelId);
+            var provider = _providerFactory.CreateProvider(request.ProviderId, request.ModelId);
             var response = await provider.SendMessageAsync(request);
             return Ok(response);
         }
@@ -65,16 +64,9 @@ public class ChatController : ControllerBase
         Response.Headers.Append("Cache-Control", "no-cache");
         Response.Headers.Append("Connection", "keep-alive");
 
-        if (!Enum.TryParse<ProviderType>(request.ProviderId, true, out var providerType))
-        {
-            await Response.WriteAsync($"data: {JsonSerializer.Serialize(new { error = "Invalid provider ID" })}\n\n");
-            await Response.Body.FlushAsync();
-            return;
-        }
-
         try
         {
-            var provider = _providerFactory.CreateProvider(providerType, request.ModelId);
+            var provider = _providerFactory.CreateProvider(request.ProviderId, request.ModelId);
             var stream = provider.StreamMessageAsync(request, HttpContext.RequestAborted);
 
             await foreach (var update in stream)

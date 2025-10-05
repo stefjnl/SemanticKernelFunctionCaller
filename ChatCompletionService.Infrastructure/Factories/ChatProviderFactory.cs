@@ -1,69 +1,49 @@
-using ChatCompletionService.Application.DTOs;
 using ChatCompletionService.Application.Interfaces;
 using ChatCompletionService.Domain.Enums;
 using ChatCompletionService.Infrastructure.Configuration;
 using ChatCompletionService.Infrastructure.Providers;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace ChatCompletionService.Infrastructure.Factories;
 
 public class ChatProviderFactory : IProviderFactory
 {
-    private readonly IConfiguration _configuration;
     private readonly ILogger<ChatProviderFactory> _logger;
-    private readonly ProviderConfigurationManager _configManager;
+    private readonly IOptions<ProviderSettings> _providerSettings;
+    private readonly Dictionary<ProviderType, Func<string, IChatCompletionService>> _providerFactories;
 
-    public ChatProviderFactory(IConfiguration configuration, ILogger<ChatProviderFactory> logger)
+    public ChatProviderFactory(IOptions<ProviderSettings> providerSettings, ILogger<ChatProviderFactory> logger)
     {
-        _configuration = configuration;
         _logger = logger;
-        _configManager = new ProviderConfigurationManager(configuration);
+        _providerSettings = providerSettings;
+        _providerFactories = new Dictionary<ProviderType, Func<string, IChatCompletionService>>
+        {
+            { ProviderType.OpenRouter, (modelId) => new OpenRouterChatProvider(providerSettings.Value.OpenRouter, modelId) },
+            { ProviderType.NanoGPT, (modelId) => new NanoGptChatProvider(providerSettings.Value.NanoGPT, modelId) }
+        };
     }
 
-    public IChatCompletionService CreateProvider(ProviderType provider, string modelId)
+    public IChatCompletionService CreateProvider(string providerName, string modelId)
     {
-        try
+        if (!Enum.TryParse<ProviderType>(providerName, true, out var providerType))
         {
-            var providerName = provider.ToString();
-            var providerConfig = _configManager.GetProviderConfig(providerName);
+            throw new NotSupportedException($"Provider '{providerName}' is not a valid provider type.");
+        }
 
-            return provider switch
+        if (_providerFactories.TryGetValue(providerType, out var factory))
+        {
+            try
             {
-                ProviderType.OpenRouter => new OpenRouterChatProvider(providerConfig, modelId),
-                ProviderType.NanoGPT => new NanoGptChatProvider(providerConfig, modelId),
-                _ => throw new NotSupportedException($"Provider {provider} is not supported.")
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to create provider {Provider} with model {Model}", provider, modelId);
-            throw;
-        }
-    }
-
-    public IEnumerable<ProviderInfoDto> GetAvailableProviders()
-    {
-        var settings = _configManager.GetAllProviderSettings();
-        var providers = new List<ProviderInfoDto>();
-
-        if (settings.OpenRouter != null)
-        {
-            providers.Add(new ProviderInfoDto { Id = "OpenRouter", DisplayName = "OpenRouter" });
-        }
-        if (settings.NanoGPT != null)
-        {
-            providers.Add(new ProviderInfoDto { Id = "NanoGPT", DisplayName = "NanoGPT" });
+                return factory(modelId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create provider {Provider} with model {Model}", providerName, modelId);
+                throw;
+            }
         }
 
-        return providers;
-    }
-
-    public IEnumerable<ModelInfoDto> GetModelsForProvider(ProviderType provider)
-    {
-        var providerName = provider.ToString();
-        var providerConfig = _configManager.GetProviderConfig(providerName);
-
-        return providerConfig.Models.Select(m => new ModelInfoDto { Id = m.Id, DisplayName = m.DisplayName });
+        throw new NotSupportedException($"Provider '{providerName}' is not supported.");
     }
 }
