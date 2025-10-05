@@ -1,4 +1,5 @@
 using ChatCompletionService.Domain.Enums;
+using ChatCompletionService.Application.DTOs;
 using Microsoft.Extensions.AI;
 using System.Linq;
 using Azure.AI.OpenAI;
@@ -12,6 +13,11 @@ public static class ModelConverter
     public static ProviderChatMessage ToProviderMessage(DomainChatMessage domainMessage)
     {
         return new ProviderChatMessage(new Microsoft.Extensions.AI.ChatRole(domainMessage.Role.ToString()), domainMessage.Content);
+    }
+
+    public static ProviderChatMessage ToProviderMessage(MessageDto dtoMessage)
+    {
+        return new ProviderChatMessage(new Microsoft.Extensions.AI.ChatRole(dtoMessage.Role.ToString()), dtoMessage.Content);
     }
 
     public static DomainChatMessage ToDomainMessage(ProviderChatMessage providerMessage)
