@@ -2,11 +2,13 @@ using ChatCompletionService.API.HealthChecks;
 using ChatCompletionService.API.Middleware;
 using ChatCompletionService.Application.Interfaces;
 using ChatCompletionService.Application.UseCases;
+using ChatCompletionService.Infrastructure.Configuration;
 using ChatCompletionService.Infrastructure.Extensions;
 using ChatCompletionService.Infrastructure.Factories;
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,6 +20,14 @@ builder.Logging.AddDebug();
 
 // Add ILoggerFactory for Microsoft.Extensions.AI
 builder.Services.AddLogging();
+
+// Configure and validate settings at startup
+builder.Services.AddOptions<ProviderSettings>()
+    .Bind(builder.Configuration.GetSection("Providers"))
+    .ValidateDataAnnotations()
+    .ValidateOnStart(); // Fails fast at startup
+
+builder.Services.AddSingleton<IValidateOptions<ProviderSettings>, ProviderSettingsValidator>();
 
 // Add services to the container.
 builder.Services.AddControllers().AddJsonOptions(options =>
@@ -35,6 +45,9 @@ builder.Services.AddScoped<GetAvailableProvidersUseCase>();
 builder.Services.AddScoped<GetProviderModelsUseCase>();
 builder.Services.AddScoped<SendChatMessageUseCase>();
 builder.Services.AddScoped<StreamChatMessageUseCase>();
+
+// Register configuration manager
+builder.Services.AddSingleton<IProviderConfigurationManager, ProviderConfigurationManager>();
 
 // Add health checks
 builder.Services.AddHealthChecks()
