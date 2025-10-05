@@ -1,6 +1,7 @@
 using ChatCompletionService.API.HealthChecks;
 using ChatCompletionService.API.Middleware;
 using ChatCompletionService.Application.Interfaces;
+using ChatCompletionService.Application.UseCases;
 using ChatCompletionService.Infrastructure.Extensions;
 using ChatCompletionService.Infrastructure.Factories;
 using HealthChecks.UI.Client;
@@ -28,6 +29,12 @@ builder.Services.AddSwaggerGen();
 
 // Register providers and configurations
 builder.Services.AddProviderServices(builder.Configuration);
+
+// Register use cases
+builder.Services.AddScoped<GetAvailableProvidersUseCase>();
+builder.Services.AddScoped<GetProviderModelsUseCase>();
+builder.Services.AddScoped<SendChatMessageUseCase>();
+builder.Services.AddScoped<StreamChatMessageUseCase>();
 
 // Add health checks
 builder.Services.AddHealthChecks()

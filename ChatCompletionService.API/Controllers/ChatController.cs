@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using ChatCompletionService.Application.Interfaces;
 using ChatCompletionService.Application.DTOs;
-using ChatCompletionService.Domain.Enums;
+using ChatCompletionService.Application.UseCases;
 using System.Text.Json;
 
 namespace ChatCompletionService.API.Controllers;
@@ -10,34 +9,37 @@ namespace ChatCompletionService.API.Controllers;
 [Route("api/[controller]")]
 public class ChatController : ControllerBase
 {
-    private readonly IProviderFactory _providerFactory;
+    private readonly GetAvailableProvidersUseCase _getProvidersUseCase;
+    private readonly GetProviderModelsUseCase _getModelsUseCase;
+    private readonly SendChatMessageUseCase _sendMessageUseCase;
+    private readonly StreamChatMessageUseCase _streamMessageUseCase;
     private readonly ILogger<ChatController> _logger;
-    private readonly IProviderConfigurationReader _providerReader;
-    private readonly IModelCatalog _modelCatalog;
 
     public ChatController(
-        IProviderFactory providerFactory,
-        ILogger<ChatController> logger,
-        IProviderConfigurationReader providerReader,
-        IModelCatalog modelCatalog)
+        GetAvailableProvidersUseCase getProvidersUseCase,
+        GetProviderModelsUseCase getModelsUseCase,
+        SendChatMessageUseCase sendMessageUseCase,
+        StreamChatMessageUseCase streamMessageUseCase,
+        ILogger<ChatController> logger)
     {
-        _providerFactory = providerFactory;
+        _getProvidersUseCase = getProvidersUseCase;
+        _getModelsUseCase = getModelsUseCase;
+        _sendMessageUseCase = sendMessageUseCase;
+        _streamMessageUseCase = streamMessageUseCase;
         _logger = logger;
-        _providerReader = providerReader;
-        _modelCatalog = modelCatalog;
     }
 
     [HttpGet("providers")]
     public IActionResult GetProviders()
     {
-        var providers = _providerReader.GetProviders();
+        var providers = _getProvidersUseCase.Execute();
         return Ok(providers);
     }
 
     [HttpGet("providers/{providerId}/models")]
     public IActionResult GetModels(string providerId)
     {
-        var models = _modelCatalog.GetModels(providerId);
+        var models = _getModelsUseCase.Execute(providerId);
         return Ok(models);
     }
 
@@ -46,8 +48,7 @@ public class ChatController : ControllerBase
     {
         try
         {
-            var provider = _providerFactory.CreateProvider(request.ProviderId, request.ModelId);
-            var response = await provider.SendMessageAsync(request);
+            var response = await _sendMessageUseCase.ExecuteAsync(request);
             return Ok(response);
         }
         catch (Exception ex)
@@ -66,8 +67,7 @@ public class ChatController : ControllerBase
 
         try
         {
-            var provider = _providerFactory.CreateProvider(request.ProviderId, request.ModelId);
-            var stream = provider.StreamMessageAsync(request, HttpContext.RequestAborted);
+            var stream = _streamMessageUseCase.ExecuteAsync(request, HttpContext.RequestAborted);
 
             await foreach (var update in stream)
             {
