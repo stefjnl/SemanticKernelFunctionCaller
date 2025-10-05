@@ -1,5 +1,14 @@
+using ChatCompletionService.API.HealthChecks;
+using ChatCompletionService.API.Middleware;
 using ChatCompletionService.Application.Interfaces;
+using ChatCompletionService.Application.UseCases;
+using ChatCompletionService.Infrastructure.Configuration;
+using ChatCompletionService.Infrastructure.Extensions;
 using ChatCompletionService.Infrastructure.Factories;
+using HealthChecks.UI.Client;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,6 +18,17 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
+// Add ILoggerFactory for Microsoft.Extensions.AI
+builder.Services.AddLogging();
+
+// Configure and validate settings at startup
+builder.Services.AddOptions<ProviderSettings>()
+    .Bind(builder.Configuration.GetSection("Providers"))
+    .ValidateDataAnnotations()
+    .ValidateOnStart(); // Fails fast at startup
+
+builder.Services.AddSingleton<IValidateOptions<ProviderSettings>, ProviderSettingsValidator>();
+
 // Add services to the container.
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
@@ -17,9 +37,21 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Register the provider factory as a singleton with configuration.
-builder.Services.AddSingleton<IProviderFactory>(sp =>
-    new ChatProviderFactory(builder.Configuration));
+// Register providers and configurations
+builder.Services.AddProviderServices(builder.Configuration);
+
+// Register use cases
+builder.Services.AddScoped<GetAvailableProvidersUseCase>();
+builder.Services.AddScoped<GetProviderModelsUseCase>();
+builder.Services.AddScoped<SendChatMessageUseCase>();
+builder.Services.AddScoped<StreamChatMessageUseCase>();
+
+// Register configuration manager
+builder.Services.AddSingleton<IProviderConfigurationManager, ProviderConfigurationManager>();
+
+// Add health checks
+builder.Services.AddHealthChecks()
+    .AddCheck<ProviderHealthCheck>("providers");
 
 // Configure CORS for development.
 builder.Services.AddCors(options =>
@@ -48,8 +80,17 @@ app.UseHttpsRedirection();
 
 app.UseCors("AllowAll");
 
+// Add exception middleware before authorization
+app.UseMiddleware<ExceptionMiddleware>();
+
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Add health check endpoint
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+});
 
 app.Run();

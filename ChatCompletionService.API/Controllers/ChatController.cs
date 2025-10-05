@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using ChatCompletionService.Application.Interfaces;
 using ChatCompletionService.Application.DTOs;
-using ChatCompletionService.Domain.Enums;
+using ChatCompletionService.Application.UseCases;
 using System.Text.Json;
 
 namespace ChatCompletionService.API.Controllers;
@@ -10,45 +9,46 @@ namespace ChatCompletionService.API.Controllers;
 [Route("api/[controller]")]
 public class ChatController : ControllerBase
 {
-    private readonly IProviderFactory _providerFactory;
+    private readonly GetAvailableProvidersUseCase _getProvidersUseCase;
+    private readonly GetProviderModelsUseCase _getModelsUseCase;
+    private readonly SendChatMessageUseCase _sendMessageUseCase;
+    private readonly StreamChatMessageUseCase _streamMessageUseCase;
     private readonly ILogger<ChatController> _logger;
 
-    public ChatController(IProviderFactory providerFactory, ILogger<ChatController> logger)
+    public ChatController(
+        GetAvailableProvidersUseCase getProvidersUseCase,
+        GetProviderModelsUseCase getModelsUseCase,
+        SendChatMessageUseCase sendMessageUseCase,
+        StreamChatMessageUseCase streamMessageUseCase,
+        ILogger<ChatController> logger)
     {
-        _providerFactory = providerFactory;
+        _getProvidersUseCase = getProvidersUseCase;
+        _getModelsUseCase = getModelsUseCase;
+        _sendMessageUseCase = sendMessageUseCase;
+        _streamMessageUseCase = streamMessageUseCase;
         _logger = logger;
     }
 
     [HttpGet("providers")]
     public IActionResult GetProviders()
     {
-        var providers = _providerFactory.GetAvailableProviders();
+        var providers = _getProvidersUseCase.Execute();
         return Ok(providers);
     }
 
     [HttpGet("providers/{providerId}/models")]
     public IActionResult GetModels(string providerId)
     {
-        if (Enum.TryParse<ProviderType>(providerId, true, out var providerType))
-        {
-            var models = _providerFactory.GetModelsForProvider(providerType);
-            return Ok(models);
-        }
-        return BadRequest("Invalid provider ID");
+        var models = _getModelsUseCase.Execute(providerId);
+        return Ok(models);
     }
 
     [HttpPost("send")]
     public async Task<IActionResult> SendMessage(ChatRequestDto request)
     {
-        if (!Enum.TryParse<ProviderType>(request.ProviderId, true, out var providerType))
-        {
-            return BadRequest("Invalid provider ID");
-        }
-
         try
         {
-            var provider = _providerFactory.CreateProvider(providerType, request.ModelId);
-            var response = await provider.SendMessageAsync(request);
+            var response = await _sendMessageUseCase.ExecuteAsync(request);
             return Ok(response);
         }
         catch (Exception ex)
@@ -65,17 +65,9 @@ public class ChatController : ControllerBase
         Response.Headers.Append("Cache-Control", "no-cache");
         Response.Headers.Append("Connection", "keep-alive");
 
-        if (!Enum.TryParse<ProviderType>(request.ProviderId, true, out var providerType))
-        {
-            await Response.WriteAsync($"data: {JsonSerializer.Serialize(new { error = "Invalid provider ID" })}\n\n");
-            await Response.Body.FlushAsync();
-            return;
-        }
-
         try
         {
-            var provider = _providerFactory.CreateProvider(providerType, request.ModelId);
-            var stream = provider.StreamMessageAsync(request, HttpContext.RequestAborted);
+            var stream = _streamMessageUseCase.ExecuteAsync(request, HttpContext.RequestAborted);
 
             await foreach (var update in stream)
             {

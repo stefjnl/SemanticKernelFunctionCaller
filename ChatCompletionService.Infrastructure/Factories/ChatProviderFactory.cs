@@ -1,56 +1,63 @@
-using ChatCompletionService.Application.DTOs;
 using ChatCompletionService.Application.Interfaces;
 using ChatCompletionService.Domain.Enums;
 using ChatCompletionService.Infrastructure.Configuration;
 using ChatCompletionService.Infrastructure.Providers;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace ChatCompletionService.Infrastructure.Factories;
 
 public class ChatProviderFactory : IProviderFactory
 {
-    private readonly ProviderConfigurationManager _configManager;
+    private readonly ILogger<ChatProviderFactory> _logger;
+    private readonly IOptions<ProviderSettings> _providerSettings;
+    private readonly Dictionary<ProviderType, Func<string, IChatCompletionService>> _providerFactories;
 
-    public ChatProviderFactory(IConfiguration configuration)
+    public ChatProviderFactory(IOptions<ProviderSettings> providerSettings, ILogger<ChatProviderFactory> logger, ILoggerFactory loggerFactory)
     {
-        _configManager = new ProviderConfigurationManager(configuration);
-    }
+        _logger = logger;
+        _providerSettings = providerSettings;
+        var configurableLogger = loggerFactory.CreateLogger<ConfigurableOpenAIChatProvider>();
 
-    public IChatCompletionService CreateProvider(ProviderType provider, string modelId)
-    {
-        var providerName = provider.ToString();
-        var providerConfig = _configManager.GetProviderConfig(providerName);
-
-        return provider switch
+        _providerFactories = new Dictionary<ProviderType, Func<string, IChatCompletionService>>
         {
-            ProviderType.OpenRouter => new OpenRouterChatProvider(providerConfig.ApiKey, modelId),
-            ProviderType.NanoGPT => new NanoGptChatProvider(providerConfig.ApiKey, modelId),
-            _ => throw new NotSupportedException($"Provider {provider} is not supported.")
+            {
+                ProviderType.OpenRouter, (modelId) =>
+                {
+                    var config = providerSettings.Value.OpenRouter;
+                    return new ConfigurableOpenAIChatProvider(config.ApiKey, modelId, config.Endpoint, "OpenRouter", configurableLogger);
+                }
+            },
+            {
+                ProviderType.NanoGPT, (modelId) =>
+                {
+                    var config = providerSettings.Value.NanoGPT;
+                    return new ConfigurableOpenAIChatProvider(config.ApiKey, modelId, config.Endpoint, "NanoGpt", configurableLogger);
+                }
+            }
         };
     }
 
-    public IEnumerable<ProviderInfoDto> GetAvailableProviders()
+    public IChatCompletionService CreateProvider(string providerName, string modelId)
     {
-        var settings = _configManager.GetAllProviderSettings();
-        var providers = new List<ProviderInfoDto>();
-
-        if (settings.OpenRouter != null)
+        if (!Enum.TryParse<ProviderType>(providerName, true, out var providerType))
         {
-            providers.Add(new ProviderInfoDto { Id = "OpenRouter", DisplayName = "OpenRouter" });
-        }
-        if (settings.NanoGPT != null)
-        {
-            providers.Add(new ProviderInfoDto { Id = "NanoGPT", DisplayName = "NanoGPT" });
+            throw new NotSupportedException($"Provider '{providerName}' is not a valid provider type.");
         }
 
-        return providers;
-    }
+        if (_providerFactories.TryGetValue(providerType, out var factory))
+        {
+            try
+            {
+                return factory(modelId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create provider {Provider} with model {Model}", providerName, modelId);
+                throw;
+            }
+        }
 
-    public IEnumerable<ModelInfoDto> GetModelsForProvider(ProviderType provider)
-    {
-        var providerName = provider.ToString();
-        var providerConfig = _configManager.GetProviderConfig(providerName);
-
-        return providerConfig.Models.Select(m => new ModelInfoDto { Id = m.Id, DisplayName = m.DisplayName });
+        throw new NotSupportedException($"Provider '{providerName}' is not supported.");
     }
 }

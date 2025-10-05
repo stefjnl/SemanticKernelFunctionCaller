@@ -1,178 +1,144 @@
+import { ChatViewModel } from './viewmodels/ChatViewModel.js';
+import { ChatView } from './views/ChatView.js';
+
+/**
+ * Main Application Bootstrap
+ * Uses MVVM pattern with proper separation of concerns
+ */
 document.addEventListener('DOMContentLoaded', () => {
-    const providerSelect = document.getElementById('provider-select');
-    const modelSelect = document.getElementById('model-select');
-    const chatWindow = document.getElementById('chat-window');
-    const messageInput = document.getElementById('message-input');
-    const sendButton = document.getElementById('send-button');
-    const clearButton = document.getElementById('clear-button');
+    // Initialize MVVM components
+    const viewModel = new ChatViewModel();
+    const view = new ChatView();
 
-    let conversationHistory = [];
-    let abortController = null;
+    // Wire up ViewModel events to View updates
+    viewModel.subscribe(handleViewModelEvents);
 
-    const state = {
-        selectedProvider: localStorage.getItem('selectedProvider') || '',
-        selectedModel: localStorage.getItem('selectedModel') || ''
-    };
+    // Wire up View events to ViewModel actions
+    setupViewEventHandlers();
 
-    async function fetchProviders() {
-        try {
-            const response = await fetch('/api/chat/providers');
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            const providers = await response.json();
-            providerSelect.innerHTML = '';
-            providers.forEach(provider => {
-                const option = document.createElement('option');
-                option.value = provider.id;
-                option.textContent = provider.displayName;
-                providerSelect.appendChild(option);
-            });
-            if (state.selectedProvider) {
-                providerSelect.value = state.selectedProvider;
-            }
-            await fetchModels();
-        } catch (error) {
-            console.error('Error fetching providers:', error);
-        }
-    }
+    // Initialize the application
+    initializeApplication();
 
-    async function fetchModels() {
-        const providerId = providerSelect.value;
-        if (!providerId) return;
-        try {
-            const response = await fetch(`/api/chat/providers/${providerId}/models`);
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            const models = await response.json();
-            modelSelect.innerHTML = '';
-            models.forEach(model => {
-                const option = document.createElement('option');
-                option.value = model.id;
-                option.textContent = model.displayName;
-                modelSelect.appendChild(option);
-            });
-            if (state.selectedModel && state.selectedProvider === providerId) {
-                modelSelect.value = state.selectedModel;
-            }
-            saveSelection();
-        } catch (error) {
-            console.error('Error fetching models:', error);
-        }
-    }
-
-    function saveSelection() {
-        state.selectedProvider = providerSelect.value;
-        state.selectedModel = modelSelect.value;
-        localStorage.setItem('selectedProvider', state.selectedProvider);
-        localStorage.setItem('selectedModel', state.selectedModel);
-    }
-
-    function addMessage(role, content) {
-        const messageElement = document.createElement('div');
-        messageElement.classList.add('p-2', 'rounded-lg', 'mb-2', 'max-w-lg', 'break-words');
-        if (role === 'user') {
-            messageElement.classList.add('bg-indigo-500', 'text-white', 'self-end', 'ml-auto');
-        } else {
-            messageElement.classList.add('bg-gray-200', 'text-gray-800', 'self-start', 'mr-auto');
-        }
-        messageElement.textContent = content;
-        chatWindow.appendChild(messageElement);
-        chatWindow.scrollTop = chatWindow.scrollHeight;
-        return messageElement;
-    }
-
-    async function handleSendMessage() {
-        const message = messageInput.value.trim();
-        if (!message) return;
-
-        addMessage('user', message);
-        conversationHistory.push({ role: 'User', content: message });
-        messageInput.value = '';
-        sendButton.disabled = true;
-
-        const assistantMessageElement = addMessage('assistant', '...');
-        let fullResponse = '';
-        abortController = new AbortController();
-
-        try {
-            const response = await fetch('/api/chat/stream', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    providerId: state.selectedProvider,
-                    modelId: state.selectedModel,
-                    messages: conversationHistory
-                }),
-                signal: abortController.signal
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                buffer = lines.pop(); // Keep the last partial line
-
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        const json = line.substring(6);
-                        if (json) {
-                            const data = JSON.parse(json);
-                            if (data.error) {
-                                throw new Error(data.error);
-                            }
-                            // Handle both Content/Content and content (backend sends PascalCase)
-                            const content = data.Content || data.content || '';
-                            const isFinal = data.IsFinal !== undefined ? data.IsFinal : data.isFinal;
-
-                            if (!isFinal) {
-                                fullResponse += content;
-                                assistantMessageElement.textContent = fullResponse;
-                                chatWindow.scrollTop = chatWindow.scrollHeight;
-                            }
-                        }
-                    }
+    /**
+     * Handle events from the ViewModel and update the View accordingly
+     */
+    function handleViewModelEvents(event) {
+        switch (event.type) {
+            case 'providersLoaded':
+                view.renderProviders(event.providers);
+                // Restore saved selection if available
+                if (viewModel.selectedProvider) {
+                    view.selectProvider(viewModel.selectedProvider);
+                    // Also load models for the saved provider
+                    viewModel.loadModelsForProvider(viewModel.selectedProvider).catch(error => {
+                        console.warn('Failed to load models for saved provider:', error);
+                    });
                 }
-            }
+                break;
 
-            conversationHistory.push({ role: 'Assistant', content: fullResponse });
+            case 'modelsLoaded':
+                view.renderModels(event.models);
+                // Restore saved selection if available and it matches the current provider
+                if (viewModel.selectedModel && viewModel.selectedProvider === event.providerId) {
+                    view.selectModel(viewModel.selectedModel);
+                }
+                break;
+
+            case 'messageSent':
+                view.renderMessage(event.message);
+                view.clearMessageInput();
+                view.setLoading(true);
+                break;
+
+            case 'streamingStarted':
+                view.renderMessage(event.message);
+                break;
+
+            case 'streamingUpdate':
+                view.renderStreamingUpdate(event.message, event.content);
+                break;
+
+            case 'streamingComplete':
+                view.renderMessage(event.message, true);
+                break;
+
+            case 'errorMessage':
+                view.showError(event.error);
+                view.setLoading(false);
+                break;
+
+            case 'conversationCleared':
+                view.clearMessages();
+                break;
+
+            case 'loadingComplete':
+                view.setLoading(false);
+                view.focusMessageInput();
+                break;
+
+            case 'requestAborted':
+                view.setLoading(false);
+                break;
+
+            case 'error':
+                view.showError(event.error);
+                break;
+
+            case 'modelUpdated':
+                // Handle general model state updates
+                view.setLoading(viewModel.isLoading);
+                break;
+        }
+    }
+
+    /**
+     * Set up event handlers from View to ViewModel
+     */
+    function setupViewEventHandlers() {
+        view.bindProviderChange((providerId) => {
+            console.log('Provider changed to:', providerId);
+            viewModel.selectProvider(providerId);
+            if (providerId) {
+                viewModel.loadModelsForProvider(providerId).then(models => {
+                    console.log('Models loaded for provider:', models.length);
+                }).catch(error => {
+                    console.error('Failed to load models:', error);
+                });
+            }
+        });
+
+        view.bindModelChange((modelId) => {
+            viewModel.selectModel(modelId);
+        });
+
+        view.bindSendMessage(async (messageContent) => {
+            try {
+                await viewModel.sendMessage(messageContent);
+            } catch (error) {
+                view.showError(error.message);
+            }
+        });
+
+        view.bindClearConversation(() => {
+            viewModel.clearConversation();
+        });
+    }
+
+    /**
+     * Initialize the application
+     */
+    async function initializeApplication() {
+        try {
+            // Load initial providers
+            const providers = await viewModel.loadProviders();
+            console.log('Providers loaded successfully:', providers.length);
+
+            // Focus on message input
+            view.focusMessageInput();
 
         } catch (error) {
-            if (error.name !== 'AbortError') {
-                console.error('Streaming failed:', error);
-                assistantMessageElement.textContent = `Error: ${error.message}`;
-            }
-        } finally {
-            sendButton.disabled = false;
-            abortController = null;
+            console.error('Failed to initialize application:', error);
+            view.showError(`Failed to initialize the chat application: ${error.message}. Please refresh the page.`);
         }
     }
-
-    function clearConversation() {
-        conversationHistory = [];
-        chatWindow.innerHTML = '';
-        if (abortController) {
-            abortController.abort();
-        }
-    }
-
-    providerSelect.addEventListener('change', fetchModels);
-    modelSelect.addEventListener('change', saveSelection);
-    sendButton.addEventListener('click', handleSendMessage);
-    messageInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleSendMessage();
-        }
-    });
-    clearButton.addEventListener('click', clearConversation);
-
-    fetchProviders();
 });

@@ -1,34 +1,31 @@
-using Microsoft.Extensions.Configuration;
+using ChatCompletionService.Infrastructure.Configuration;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace ChatCompletionService.Infrastructure.Configuration;
 
-public class ProviderConfigurationManager
+public class ProviderConfigurationManager : IProviderConfigurationManager
 {
-    private readonly ProviderSettings _providerSettings;
-    private readonly IConfiguration _configuration;
+    private readonly ProviderSettings _settings;
+    private readonly ILogger<ProviderConfigurationManager> _logger;
 
-    public ProviderConfigurationManager(IConfiguration configuration)
+    public ProviderConfigurationManager(
+        IOptions<ProviderSettings> options,
+        ILogger<ProviderConfigurationManager> logger)
     {
-        _configuration = configuration;
-
-        _providerSettings = configuration.GetSection("Providers").Get<ProviderSettings>()
-                            ?? throw new InvalidOperationException("Provider settings not found in configuration.");
+        _settings = options.Value; // Throws if configuration invalid
+        _logger = logger;
     }
 
     public ProviderConfig GetProviderConfig(string providerName)
     {
-        var config = providerName.ToLower() switch
+        return providerName.ToLower() switch
         {
-            "openrouter" => _providerSettings.OpenRouter,
-            "nanogpt" => _providerSettings.NanoGPT,
-            _ => throw new KeyNotFoundException($"Provider '{providerName}' not found in configuration.")
+            "openrouter" => _settings.OpenRouter,
+            "nanogpt" => _settings.NanoGPT,
+            _ => throw new KeyNotFoundException($"Provider '{providerName}' not found")
         };
-
-        return config;
     }
 
-    public ProviderSettings GetAllProviderSettings()
-    {
-        return _providerSettings;
-    }
+    public ProviderSettings GetAllProviderSettings() => _settings;
 }
