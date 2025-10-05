@@ -1,3 +1,5 @@
+using ChatCompletionService.API.HealthChecks;
+using ChatCompletionService.API.Middleware;
 using ChatCompletionService.Application.Interfaces;
 using ChatCompletionService.Infrastructure.Extensions;
 using ChatCompletionService.Infrastructure.Factories;
@@ -23,6 +25,10 @@ builder.Services.AddSwaggerGen();
 
 // Register providers and configurations
 builder.Services.AddProviderServices(builder.Configuration);
+
+// Add health checks
+builder.Services.AddHealthChecks()
+    .AddCheck<ProviderHealthCheck>("providers");
 
 // Configure CORS for development.
 builder.Services.AddCors(options =>
@@ -51,8 +57,14 @@ app.UseHttpsRedirection();
 
 app.UseCors("AllowAll");
 
+// Add exception middleware before authorization
+app.UseMiddleware<ExceptionMiddleware>();
+
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Add health check endpoint
+app.MapHealthChecks("/health");
 
 app.Run();
