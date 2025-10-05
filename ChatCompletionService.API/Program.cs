@@ -1,4 +1,5 @@
 using ChatCompletionService.Application.Interfaces;
+using ChatCompletionService.Infrastructure.Extensions;
 using ChatCompletionService.Infrastructure.Factories;
 using System.Text.Json.Serialization;
 
@@ -8,6 +9,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
+
+// Add ILoggerFactory for Microsoft.Extensions.AI
+builder.Services.AddLogging();
 
 // Add services to the container.
 builder.Services.AddControllers().AddJsonOptions(options =>
@@ -19,6 +23,9 @@ builder.Services.AddSwaggerGen();
 
 // Register the provider factory with proper DI
 builder.Services.AddSingleton<IProviderFactory, ChatProviderFactory>();
+
+// Add Microsoft.Extensions.AI chat client with proper middleware
+builder.Services.AddOpenRouterChatClient(builder.Configuration);
 
 // Configure CORS for development.
 builder.Services.AddCors(options =>

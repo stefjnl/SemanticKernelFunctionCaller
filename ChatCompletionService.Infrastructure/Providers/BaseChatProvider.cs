@@ -97,6 +97,8 @@ public abstract class BaseChatProvider : IChatCompletionService
             new ApiKeyCredential(apiKey),
             new OpenAIClientOptions { Endpoint = new Uri(endpoint) });
 
-        return chatClient.AsIChatClient();
+        return chatClient.AsIChatClient().AsBuilder()
+            .UseOpenTelemetry()
+            .Build();
     }
 }
