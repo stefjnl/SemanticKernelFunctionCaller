@@ -7,19 +7,22 @@ public class ProviderHealthCheck : IHealthCheck
 {
     private readonly IProviderFactory _providerFactory;
     private readonly IProviderConfigurationReader _providerConfigurationReader;
+    private readonly IModelCatalog _modelCatalog;
     private readonly ILogger<ProviderHealthCheck> _logger;
 
     public ProviderHealthCheck(
         IProviderFactory providerFactory,
         IProviderConfigurationReader providerConfigurationReader,
+        IModelCatalog modelCatalog,
         ILogger<ProviderHealthCheck> logger)
     {
         _providerFactory = providerFactory;
         _providerConfigurationReader = providerConfigurationReader;
+        _modelCatalog = modelCatalog;
         _logger = logger;
     }
 
-    public async Task<HealthCheckResult> CheckHealthAsync(
+    public Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context,
         CancellationToken cancellationToken = default)
     {
@@ -30,21 +33,30 @@ public class ProviderHealthCheck : IHealthCheck
 
         if (totalProviders == 0)
         {
-            return HealthCheckResult.Unhealthy(
+            return Task.FromResult(HealthCheckResult.Unhealthy(
                 "No providers are configured.",
                 data: new Dictionary<string, object>
                 {
                     ["reason"] = "No providers found in configuration"
-                });
+                }));
         }
 
         foreach (var provider in providers)
         {
             try
             {
+                // Get available models for this provider
+                var models = _modelCatalog.GetModels(provider.Id).ToList();
+
+                if (!models.Any())
+                {
+                    providerHealthData[provider.Id] = "Unhealthy";
+                    _logger.LogWarning("Provider {ProviderId} has no available models", provider.Id);
+                    continue;
+                }
+
                 // Try to create a provider instance to test availability
-                // We'll use a dummy model ID since we're just testing connectivity
-                var chatService = _providerFactory.CreateProvider(provider.Id, "test-model");
+                var chatService = _providerFactory.CreateProvider(provider.Id, models.First().Id);
 
                 if (chatService != null)
                 {
@@ -74,21 +86,21 @@ public class ProviderHealthCheck : IHealthCheck
 
         if (healthyProviders == 0)
         {
-            return HealthCheckResult.Unhealthy(
+            return Task.FromResult(HealthCheckResult.Unhealthy(
                 "All providers are unhealthy.",
-                data: healthData);
+                data: healthData));
         }
         else if (healthyProviders < totalProviders)
         {
-            return HealthCheckResult.Degraded(
+            return Task.FromResult(HealthCheckResult.Degraded(
                 $"{healthyProviders} of {totalProviders} providers are healthy.",
-                data: healthData);
+                data: healthData));
         }
         else
         {
-            return HealthCheckResult.Healthy(
+            return Task.FromResult(HealthCheckResult.Healthy(
                 "All providers are healthy.",
-                data: healthData);
+                data: healthData));
         }
     }
 }

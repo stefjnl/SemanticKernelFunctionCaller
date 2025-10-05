@@ -3,6 +3,9 @@ using ChatCompletionService.API.Middleware;
 using ChatCompletionService.Application.Interfaces;
 using ChatCompletionService.Infrastructure.Extensions;
 using ChatCompletionService.Infrastructure.Factories;
+using HealthChecks.UI.Client;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -65,6 +68,9 @@ app.UseAuthorization();
 app.MapControllers();
 
 // Add health check endpoint
-app.MapHealthChecks("/health");
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+});
 
 app.Run();

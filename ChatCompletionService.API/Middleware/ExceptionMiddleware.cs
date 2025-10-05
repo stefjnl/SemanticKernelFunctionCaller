@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using ChatCompletionService.API.Models;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Hosting;
 
 namespace ChatCompletionService.API.Middleware;
 
@@ -9,11 +10,13 @@ public class ExceptionMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<ExceptionMiddleware> _logger;
+    private readonly IHostEnvironment _environment;
 
-    public ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger)
+    public ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger, IHostEnvironment environment)
     {
         _next = next;
         _logger = logger;
+        _environment = environment;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -41,7 +44,7 @@ public class ExceptionMiddleware
             TraceId = traceId,
             Timestamp = DateTime.UtcNow,
             Message = message,
-            Details = exception.InnerException?.Message
+            Details = _environment.IsDevelopment() ? exception.ToString() : null
         };
 
         context.Response.StatusCode = (int)statusCode;
