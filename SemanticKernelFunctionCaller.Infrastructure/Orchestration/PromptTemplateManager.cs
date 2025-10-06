@@ -10,7 +10,7 @@ namespace SemanticKernelFunctionCaller.Infrastructure.Orchestration;
 /// <summary>
 /// Manages prompt templates for the application
 /// </summary>
-public class PromptTemplateManager : IPromptTemplateService
+public class PromptTemplateManager
 {
     private readonly ILogger<PromptTemplateManager> _logger;
     private readonly SemanticKernelSettings _settings;

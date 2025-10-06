@@ -1,11 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 using SemanticKernelFunctionCaller.Application.DTOs;
-using SemanticKernelFunctionCaller.Application.Interfaces;
-using SemanticKernelFunctionCaller.Application.Requests;
-using SemanticKernelFunctionCaller.Infrastructure.Configuration;
+using SemanticKernelFunctionCaller.Application.UseCases;
 using System.Text.Json;
-using Microsoft.AspNetCore.RateLimiting;
 
 namespace SemanticKernelFunctionCaller.API.Controllers;
 
@@ -13,46 +9,37 @@ namespace SemanticKernelFunctionCaller.API.Controllers;
 [Route("api/[controller]")]
 public class ChatController : ControllerBase
 {
-    private readonly IMediator _mediator;
+    private readonly SendOrchestratedChatMessageUseCaseV2 _orchestratedChatUseCase;
+    private readonly ExecutePromptTemplateUseCaseV2 _promptTemplateUseCase;
+    private readonly StreamOrchestratedChatMessageUseCaseV2 _streamOrchestratedUseCase;
     private readonly IStreamChatMessageUseCase _streamMessageUseCase;
-    private readonly StreamOrchestratedChatMessageUseCase _streamOrchestratedMessageUseCase;
     private readonly ILogger<ChatController> _logger;
 
     public ChatController(
-        IMediator mediator,
+        SendOrchestratedChatMessageUseCaseV2 orchestratedChatUseCase,
+        ExecutePromptTemplateUseCaseV2 promptTemplateUseCase,
+        StreamOrchestratedChatMessageUseCaseV2 streamOrchestratedUseCase,
         IStreamChatMessageUseCase streamMessageUseCase,
-        StreamOrchestratedChatMessageUseCase streamOrchestratedMessageUseCase,
         ILogger<ChatController> logger)
     {
-        _mediator = mediator;
+        _orchestratedChatUseCase = orchestratedChatUseCase;
+        _promptTemplateUseCase = promptTemplateUseCase;
+        _streamOrchestratedUseCase = streamOrchestratedUseCase;
         _streamMessageUseCase = streamMessageUseCase;
-        _streamOrchestratedMessageUseCase = streamOrchestratedMessageUseCase;
         _logger = logger;
     }
 
-    [HttpGet("providers")]
-    public IActionResult GetProviders()
-    {
-        var request = new GetAvailableProvidersRequest();
-        var providers = await _mediator.Send(request);
-        return Ok(providers);
-    }
-
-    [HttpGet("providers/{providerId}/models")]
-    public IActionResult GetModels(string providerId)
-    {
-        var request = new GetProviderModelsRequest { ProviderId = providerId };
-        var models = await _mediator.Send(request);
-        return Ok(models);
-    }
+    // Provider and model endpoints removed - not in rollback requirements
+    // These can be added back later if needed
 
     [HttpPost("send")]
     public async Task<IActionResult> SendMessage(ChatRequestDto request)
     {
         try
         {
-            var sendRequest = new SendChatMessageRequest { Request = request };
-            var response = await _mediator.Send(sendRequest);
+            // For now, delegate to orchestrated endpoint
+            // This can be enhanced later with direct chat completion service
+            var response = await _orchestratedChatUseCase.ExecuteAsync(request);
             return Ok(response);
         }
         catch (Exception ex)
@@ -90,13 +77,11 @@ public class ChatController : ControllerBase
     }
 
     [HttpPost("orchestrated")]
-    [RateLimitPolicy("OrchestratedEndpoints")]
     public async Task<IActionResult> SendOrchestratedMessage(ChatRequestDto request)
     {
         try
         {
-            var sendRequest = new SendOrchestratedChatMessageRequest { Request = request };
-            var response = await _mediator.Send(sendRequest);
+            var response = await _orchestratedChatUseCase.ExecuteAsync(request);
             return Ok(response);
         }
         catch (Exception ex)
@@ -107,7 +92,6 @@ public class ChatController : ControllerBase
     }
 
     [HttpPost("orchestrated/stream")]
-    [RateLimitPolicy("OrchestratedEndpoints")]
     public async Task StreamOrchestratedMessage(ChatRequestDto request)
     {
         Response.ContentType = "text/event-stream";
@@ -116,7 +100,7 @@ public class ChatController : ControllerBase
 
         try
         {
-            var stream = _streamOrchestratedMessageUseCase.ExecuteAsync(request, HttpContext.RequestAborted);
+            var stream = _streamOrchestratedUseCase.ExecuteAsync(request, HttpContext.RequestAborted);
 
             await foreach (var update in stream)
             {
@@ -139,8 +123,7 @@ public class ChatController : ControllerBase
     {
         try
         {
-            var request = new ExecutePromptTemplateRequest { Request = templateRequest };
-            var response = await _mediator.Send(request);
+            var response = await _promptTemplateUseCase.ExecuteAsync(templateRequest);
             return Ok(response);
         }
         catch (Exception ex)
@@ -150,34 +133,5 @@ public class ChatController : ControllerBase
         }
     }
 
-    [HttpPost("workflow")]
-    public async Task<IActionResult> ExecuteWorkflow(WorkflowRequestDto workflowRequest)
-    {
-        try
-        {
-            var request = new ExecuteWorkflowRequest { Request = workflowRequest };
-            var response = await _mediator.Send(request);
-            return Ok(response);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "An error occurred while executing a workflow.");
-            return StatusCode(500, $"An error occurred: {ex.Message}");
-        }
-        
-        [HttpGet("templates")]
-        public async Task<IActionResult> GetAvailableTemplates()
-        {
-            try
-            {
-                var templates = await _templateService.GetAvailableTemplatesAsync();
-                return Ok(templates);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while retrieving available templates.");
-                return StatusCode(500, $"An error occurred: {ex.Message}");
-            }
-        }
-    }
+    // Templates endpoint removed - not in original requirements
 }

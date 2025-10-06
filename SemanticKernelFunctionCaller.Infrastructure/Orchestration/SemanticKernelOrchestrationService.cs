@@ -21,18 +21,15 @@ public class SemanticKernelOrchestrationService : IAIOrchestrationService
     private readonly IProviderFactory _providerFactory;
     private readonly ILogger<SemanticKernelOrchestrationService> _logger;
     private readonly SemanticKernelSettings _semanticKernelSettings;
-    private readonly IEnumerable<IKernelPluginProvider> _pluginProviders;
 
     public SemanticKernelOrchestrationService(
         IProviderFactory providerFactory,
         ILogger<SemanticKernelOrchestrationService> logger,
-        IOptions<SemanticKernelSettings> semanticKernelSettings,
-        IEnumerable<IKernelPluginProvider> pluginProviders)
+        IOptions<SemanticKernelSettings> semanticKernelSettings)
     {
         _providerFactory = providerFactory;
         _logger = logger;
         _semanticKernelSettings = semanticKernelSettings.Value;
-        _pluginProviders = pluginProviders;
     }
 
     public async Task<ChatResponseDto> SendOrchestratedMessageAsync(
@@ -217,69 +214,15 @@ public class SemanticKernelOrchestrationService : IAIOrchestrationService
         }
     }
 
-    public async Task<ChatResponseDto> ExecuteWorkflowAsync(
-        WorkflowRequestDto workflowRequest,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            // Create Semantic Kernel with our provider
-            var kernel = CreateKernel();
-
-            // Create a prompt for the workflow execution
-            var prompt = $"""
-                Execute the following workflow:
-                
-                Goal: {workflowRequest.Goal}
-                Context: {workflowRequest.Context ?? "None provided"}
-                
-                Available functions: {string.Join(", ", workflowRequest.AvailableFunctions)}
-                
-                Please execute this workflow step by step.
-                """;
-
-            // Configure execution settings for workflow with function calling
-            var executionSettings = new OpenAIPromptExecutionSettings
-            {
-                Temperature = (float)(workflowRequest.ExecutionSettings?.Temperature ?? 0.7),
-                MaxTokens = workflowRequest.ExecutionSettings?.MaxTokens,
-                ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions
-            };
-
-            // Track function calls for metadata
-            var functionCalls = new List<FunctionCallMetadata>();
-            
-            // Add a filter to capture function invocation metadata
-            kernel.FunctionInvocationFilters.Add(new FunctionInvocationFilterAdapter(functionCalls, _logger));
-
-            // Execute the workflow
-            var result = await kernel.InvokePromptAsync(prompt, new KernelArguments(executionSettings), cancellationToken);
-
-            // No need to unsubscribe from filters
-
-            return new ChatResponseDto
-            {
-                Content = result.ToString() ?? string.Empty,
-                ModelId = _semanticKernelSettings.DefaultModel,
-                ProviderId = _semanticKernelSettings.DefaultProvider,
-                FunctionsExecuted = functionCalls
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error in ExecuteWorkflowAsync");
-            throw;
-        }
-    }
 
     private Kernel CreateKernel()
     {
         // Create Semantic Kernel builder
         var builder = Kernel.CreateBuilder();
-        
+
         // Get provider configuration
         var provider = _providerFactory.CreateProvider(_semanticKernelSettings.DefaultProvider, _semanticKernelSettings.DefaultModel);
-        
+
         // Try to get the IChatClient from the provider
         if (provider is IChatClientProvider chatClientProvider)
         {
@@ -287,19 +230,11 @@ public class SemanticKernelOrchestrationService : IAIOrchestrationService
             builder.Services.AddSingleton<IChatClient>(chatClient);
             builder.Plugins.AddFromType<Microsoft.SemanticKernel.ChatCompletion.ChatCompletionService>();
         }
-        
-        // Register plugins with the kernel
-        foreach (var pluginProvider in _pluginProviders)
-        {
-            if (_semanticKernelSettings.EnabledPlugins.Contains(pluginProvider.Name))
-            {
-                // Create a temporary kernel to create the plugin
-                var tempKernel = builder.Build();
-                var plugin = pluginProvider.CreatePlugin(tempKernel);
-                builder.Plugins.Add(plugin);
-            }
-        }
-        
+
+        // Register basic plugins directly (simplified approach)
+        builder.Plugins.AddFromType<WeatherPlugin>();
+        builder.Plugins.AddFromType<DateTimePlugin>();
+
         return builder.Build();
     }
 
@@ -323,15 +258,6 @@ public class SemanticKernelOrchestrationService : IAIOrchestrationService
         return chatHistory;
     }
 
-    private bool IsCriticalPlugin(string pluginName)
-    {
-        return _semanticKernelSettings.PluginCriticality.Critical.Contains(pluginName);
-    }
-
-    private bool IsNonCriticalPlugin(string pluginName)
-    {
-        return _semanticKernelSettings.PluginCriticality.NonCritical.Contains(pluginName);
-    }
 }
 
 /// <summary>

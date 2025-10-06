@@ -35,13 +35,4 @@ public interface IAIOrchestrationService
         PromptTemplateDto templateRequest,
         CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Executes a multi-step workflow using plan-and-execute pattern
-    /// </summary>
-    /// <param name="workflowRequest">Workflow request details</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Chat response with workflow execution result</returns>
-    Task<ChatResponseDto> ExecuteWorkflowAsync(
-        WorkflowRequestDto workflowRequest,
-        CancellationToken cancellationToken = default);
 }
