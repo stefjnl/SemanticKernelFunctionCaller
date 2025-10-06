@@ -83,6 +83,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 view.setLoading(false);
                 break;
 
+            case 'toolInvocation':
+                view.showToolInvocation(event.functionName, event.content);
+                break;
+
+            case 'pluginsLoaded':
+                view.renderPlugins(event.plugins);
+                break;
+
             case 'error':
                 view.showError(event.error);
                 break;
@@ -126,8 +134,18 @@ document.addEventListener('DOMContentLoaded', () => {
             viewModel.clearConversation();
         });
 
-        view.bindToolsToggle((useTools) => {
+        view.bindToolsToggle(async (useTools) => {
             viewModel.useTools = useTools;
+            
+            // Show/hide plugins container based on tools toggle
+            const pluginsContainer = document.getElementById('plugins-container');
+            if (useTools) {
+                pluginsContainer.classList.remove('hidden');
+                // Load plugins when tools are enabled
+                await viewModel.loadPlugins();
+            } else {
+                pluginsContainer.classList.add('hidden');
+            }
         });
     }
 
@@ -139,6 +157,13 @@ document.addEventListener('DOMContentLoaded', () => {
             // Load initial providers
             const providers = await viewModel.loadProviders();
             console.log('Providers loaded successfully:', providers.length);
+
+            // Check if tools are enabled by default and load plugins if needed
+            if (viewModel.useTools) {
+                await viewModel.loadPlugins();
+                const pluginsContainer = document.getElementById('plugins-container');
+                pluginsContainer.classList.remove('hidden');
+            }
 
             // Focus on message input
             view.focusMessageInput();

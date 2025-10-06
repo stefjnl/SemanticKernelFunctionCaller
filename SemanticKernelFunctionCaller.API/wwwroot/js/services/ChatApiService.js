@@ -48,6 +48,23 @@ export class ChatApiService {
     }
 
     /**
+     * Fetches available plugins from the API
+     * @returns {Promise<Array>} Array of plugin objects
+     */
+    async fetchPlugins() {
+        try {
+            const response = await fetch(`${this.baseUrl}/plugins`);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch plugins: ${response.status} ${response.statusText}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching plugins:', error);
+            throw new Error(`Unable to load plugins: ${error.message}`);
+        }
+    }
+
+    /**
      * Sends a chat message and returns the full response
      * @param {string} providerId - The provider identifier
      * @param {string} modelId - The model identifier

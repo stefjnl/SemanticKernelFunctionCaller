@@ -112,7 +112,21 @@ public class ChatController : ControllerBase
                 _kernel,
                 cancellationToken: HttpContext.RequestAborted))
             {
-                if (!string.IsNullOrEmpty(update.Content))
+                // Show tool invocation in the stream
+                if (update.Role == AuthorRole.Tool && update.Content != null)
+                {
+                    _logger.LogInformation("Tool invocation: {FunctionName}", update.Content);
+                    
+                    var toolJson = JsonSerializer.Serialize(new
+                    {
+                        type = "tool_call",
+                        functionName = update.Content,
+                        content = $"🔧 Calling {update.Content}..."
+                    });
+                    await Response.WriteAsync($"data: {toolJson}\n\n");
+                    await Response.Body.FlushAsync();
+                }
+                else if (!string.IsNullOrEmpty(update.Content))
                 {
                     var json = JsonSerializer.Serialize(new { content = update.Content });
                     await Response.WriteAsync($"data: {json}\n\n");
@@ -128,6 +142,39 @@ public class ChatController : ControllerBase
             var jsonError = JsonSerializer.Serialize(new { error = $"An error occurred: {ex.Message}" });
             await Response.WriteAsync($"data: {jsonError}\n\n");
             await Response.Body.FlushAsync();
+        }
+    }
+
+    [HttpGet("plugins")]
+    public IActionResult GetAvailablePlugins()
+    {
+        try
+        {
+            _logger.LogInformation("Retrieving available plugins");
+            
+            var plugins = _kernel.Plugins
+                .SelectMany(p => p.Select(f => new
+                {
+                    Plugin = p.Name,
+                    Function = f.Name,
+                    Description = f.Description,
+                    Parameters = f.Metadata.Parameters.Select(param => new
+                    {
+                        Name = param.Name,
+                        Description = param.Description,
+                        Type = param.ParameterType.Name,
+                        IsRequired = param.IsRequired
+                    })
+                }))
+                .ToList();
+
+            _logger.LogInformation("Found {Count} plugin functions", plugins.Count);
+            return Ok(plugins);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving plugins.");
+            return StatusCode(500, $"An error occurred: {ex.Message}");
         }
     }
 }

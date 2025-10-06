@@ -40,6 +40,29 @@ builder.Services.Configure<ChatSettings>(
 builder.Services.Configure<SemanticKernelSettings>(
     builder.Configuration.GetSection("SemanticKernel"));
 
+// Validate Semantic Kernel settings at startup
+builder.Services.PostConfigure<SemanticKernelSettings>(settings =>
+{
+    if (string.IsNullOrEmpty(settings.DefaultProvider))
+        throw new InvalidOperationException("SemanticKernel:DefaultProvider is not configured");
+    
+    var provider = settings.DefaultProvider.ToLowerInvariant() switch
+    {
+        "openrouter" => settings.OpenRouter,
+        "nanogpt" => settings.NanoGPT,
+        _ => throw new InvalidOperationException($"Unknown provider: {settings.DefaultProvider}")
+    };
+    
+    if (string.IsNullOrEmpty(provider?.ApiKey))
+        throw new InvalidOperationException($"SemanticKernel: {settings.DefaultProvider} ApiKey is not configured");
+    
+    if (string.IsNullOrEmpty(provider?.ModelId))
+        throw new InvalidOperationException($"SemanticKernel: {settings.DefaultProvider} ModelId is not configured");
+    
+    if (string.IsNullOrEmpty(provider?.Endpoint))
+        throw new InvalidOperationException($"SemanticKernel: {settings.DefaultProvider} Endpoint is not configured");
+});
+
 // Add services to the container.
 builder.Services.AddControllers().AddJsonOptions(options =>
 {

@@ -1,4 +1,7 @@
 using Microsoft.SemanticKernel;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
 
 namespace SemanticKernelFunctionCaller.Infrastructure.Plugins;
 
@@ -19,7 +22,7 @@ public class TimePlugin
     /// </summary>
     /// <param name="timezone">Timezone identifier (e.g., 'America/New_York', 'UTC', 'Europe/London')</param>
     /// <returns>The current time in the specified timezone formatted as ISO 8601 string</returns>
-    [KernelFunction]
+    [KernelFunction, Description("Gets current time in specified timezone (e.g., 'Asia/Tokyo', 'America/New_York')")]
     public string GetCurrentTime(string timezone = "UTC")
     {
         try
@@ -75,9 +78,18 @@ public class TimePlugin
             
             return result;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            return $"Error: Unable to get time for timezone '{timezone}'. {ex.Message}";
+            var commonTimezones = new[]
+            {
+                "UTC", "GMT", "EST", "PST",
+                "America/New_York", "America/Los_Angeles", "America/Chicago",
+                "Europe/London", "Europe/Paris", "Europe/Berlin",
+                "Asia/Tokyo", "Asia/Shanghai", "Asia/Dubai",
+                "Australia/Sydney", "Australia/Melbourne"
+            };
+            
+            return $"Unknown timezone '{timezone}'. Try: {string.Join(", ", commonTimezones.Take(6))}... or ask for 'available timezones'.";
         }
     }
 
@@ -85,7 +97,7 @@ public class TimePlugin
     /// Gets the current UTC time
     /// </summary>
     /// <returns>The current UTC time formatted as ISO 8601 string</returns>
-    [KernelFunction]
+    [KernelFunction, Description("Gets current UTC time in ISO format")]
     public string GetUtcTime()
     {
         return GetCurrentTime("UTC");
@@ -95,7 +107,7 @@ public class TimePlugin
     /// Gets a list of available timezone identifiers
     /// </summary>
     /// <returns>A list of common timezone identifiers that can be used with GetCurrentTime</returns>
-    [KernelFunction]
+    [KernelFunction, Description("Lists all valid timezone identifiers for use with GetCurrentTime")]
     public string GetAvailableTimezones()
     {
         var commonTimezones = new[]

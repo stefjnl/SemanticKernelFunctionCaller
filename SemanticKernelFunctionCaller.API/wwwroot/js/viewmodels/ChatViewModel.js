@@ -11,6 +11,7 @@ export class ChatViewModel {
         this.apiService = new ChatApiService();
         this._listeners = [];
         this._useTools = false;
+        this._plugins = [];
     }
 
     // Model state access
@@ -42,6 +43,10 @@ export class ChatViewModel {
         this._useTools = Boolean(value);
     }
 
+    get plugins() {
+        return this._plugins;
+    }
+
     // Provider and Model management
     async loadProviders() {
         try {
@@ -63,6 +68,19 @@ export class ChatViewModel {
         } catch (error) {
             this._notifyListeners({ type: 'error', error: error.message });
             throw error;
+        }
+    }
+
+    async loadPlugins() {
+        try {
+            const plugins = await this.apiService.fetchPlugins();
+            this._plugins = plugins;
+            this._notifyListeners({ type: 'pluginsLoaded', plugins });
+            return plugins;
+        } catch (error) {
+            console.error('Failed to load plugins:', error);
+            // Don't throw error, just log it - plugins are optional
+            return [];
         }
     }
 
@@ -110,6 +128,16 @@ export class ChatViewModel {
             let assistantMessage = null;
 
             for await (const update of streamingGenerator) {
+                // Handle tool invocation messages
+                if (update.type === 'tool_call') {
+                    this._notifyListeners({
+                        type: 'toolInvocation',
+                        functionName: update.functionName,
+                        content: update.content
+                    });
+                    continue;
+                }
+
                 // Handle both Content/Content and content (backend sends PascalCase)
                 const content = update.Content || update.content || '';
                 const isFinal = update.IsFinal !== undefined ? update.IsFinal : update.isFinal;
@@ -222,7 +250,8 @@ export class ChatViewModel {
             selectedModel: this.selectedModel,
             isLoading: this.isLoading,
             canSendMessage: this.canSendMessage,
-            useTools: this.useTools
+            useTools: this.useTools,
+            plugins: this.plugins
         };
     }
 }
