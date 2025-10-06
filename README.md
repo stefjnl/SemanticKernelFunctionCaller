@@ -1,6 +1,6 @@
 # ChatCompletionService - Enterprise AI Chat Application
 
-This project is an enterprise-grade AI chat application built with .NET 9, Clean Architecture, and .NET Aspire. It provides a unified interface for interacting with multiple AI providers while maintaining a clean, scalable, and maintainable codebase.
+This project is a continuation of the AI chat application ChatCompletionService https://github.com/stefjnl/ChatCompletionService. Built with .NET 8, Clean Architecture, and .NET Aspire. It provides a unified interface for interacting with multiple AI providers while maintaining a clean, scalable, and maintainable codebase.
 
 ## Architecture Overview
 
