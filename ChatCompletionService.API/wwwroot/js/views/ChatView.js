@@ -92,7 +92,44 @@ export class ChatView {
         let messageElement = this.messageElements.get(messageId);
 
         if (messageElement) {
-            messageElement.textContent = content;
+            // Find the actual message bubble inside the container
+            const messageBubble = messageElement.querySelector('div');
+            if (messageBubble) {
+                // For streaming updates, parse markdown if it's an assistant message
+                if (streamingMessage.role === 'Assistant') {
+                    messageBubble.innerHTML = marked.parse(content);
+                    // Ensure prose classes are present
+                    if (!messageBubble.classList.contains('prose')) {
+                        messageBubble.classList.add('prose', 'prose-slate', 'prose-sm');
+                    }
+                    
+                    // Highlight code blocks
+                    messageBubble.querySelectorAll('pre code').forEach((block) => {
+                        hljs.highlightElement(block);
+                    });
+                    
+                    // Add copy buttons to code blocks
+                    messageBubble.querySelectorAll('pre').forEach((pre) => {
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'relative group';
+                        pre.parentNode.insertBefore(wrapper, pre);
+                        wrapper.appendChild(pre);
+                        
+                        const copyBtn = document.createElement('button');
+                        copyBtn.innerHTML = '📋';
+                        copyBtn.className = 'absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-gray-700 text-white px-2 py-1 rounded text-xs';
+                        copyBtn.onclick = () => {
+                            navigator.clipboard.writeText(pre.textContent);
+                            copyBtn.innerHTML = '✓';
+                            setTimeout(() => copyBtn.innerHTML = '📋', 2000);
+                        };
+                        wrapper.appendChild(copyBtn);
+                    });
+                } else {
+                    // Security: Always use textContent for user messages to prevent XSS
+                    messageBubble.textContent = content;
+                }
+            }
         } else {
             // Create temporary element for streaming
             messageElement = this._createMessageElement(streamingMessage);
@@ -184,23 +221,106 @@ export class ChatView {
 
     // Private helper methods
     _createMessageElement(message) {
+        const container = document.createElement('div');
+        container.className = this._getMessageContainerClasses(message.role);
+        
         const element = document.createElement('div');
         element.className = this._getMessageClasses(message.role);
-        element.textContent = message.content;
-        return element;
+        
+        // Parse markdown for assistant messages, keep user messages as plain text
+        if (message.role === 'Assistant') {
+            // Use marked.js to parse markdown content
+            element.innerHTML = marked.parse(message.content);
+            // Add prose classes for typography
+            element.classList.add('prose', 'prose-slate', 'prose-sm');
+            
+            // Highlight code blocks
+            element.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightElement(block);
+            });
+            
+            // Add copy buttons to code blocks
+            element.querySelectorAll('pre').forEach((pre) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'relative group';
+                pre.parentNode.insertBefore(wrapper, pre);
+                wrapper.appendChild(pre);
+                
+                const copyBtn = document.createElement('button');
+                copyBtn.innerHTML = '📋';
+                copyBtn.className = 'absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-gray-700 text-white px-2 py-1 rounded text-xs';
+                copyBtn.onclick = () => {
+                    navigator.clipboard.writeText(pre.textContent);
+                    copyBtn.innerHTML = '✓';
+                    setTimeout(() => copyBtn.innerHTML = '📋', 2000);
+                };
+                wrapper.appendChild(copyBtn);
+            });
+        } else {
+            // Security: Always use textContent for user messages to prevent XSS
+            element.textContent = message.content;
+        }
+        
+        container.appendChild(element);
+        return container;
     }
 
     _updateMessageElement(element, message) {
-        element.textContent = message.content;
+        // Find the actual message bubble inside the container
+        const messageBubble = element.querySelector('div');
+        if (messageBubble) {
+            // Parse markdown for assistant messages, keep user messages as plain text
+            if (message.role === 'Assistant') {
+                messageBubble.innerHTML = marked.parse(message.content);
+                // Ensure prose classes are present
+                if (!messageBubble.classList.contains('prose')) {
+                    messageBubble.classList.add('prose', 'prose-slate', 'prose-sm');
+                }
+                
+                // Highlight code blocks
+                messageBubble.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+                
+                // Add copy buttons to code blocks
+                messageBubble.querySelectorAll('pre').forEach((pre) => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'relative group';
+                    pre.parentNode.insertBefore(wrapper, pre);
+                    wrapper.appendChild(pre);
+                    
+                    const copyBtn = document.createElement('button');
+                    copyBtn.innerHTML = '📋';
+                    copyBtn.className = 'absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-gray-700 text-white px-2 py-1 rounded text-xs';
+                    copyBtn.onclick = () => {
+                        navigator.clipboard.writeText(pre.textContent);
+                        copyBtn.innerHTML = '✓';
+                        setTimeout(() => copyBtn.innerHTML = '📋', 2000);
+                    };
+                    wrapper.appendChild(copyBtn);
+                });
+            } else {
+                // Security: Always use textContent for user messages to prevent XSS
+                messageBubble.textContent = message.content;
+            }
+        }
     }
 
+    _getMessageContainerClasses(role) {
+        if (role === 'User') {
+            return 'flex justify-end mb-2';
+        } else {
+            return 'flex justify-start mb-2';
+        }
+    }
+    
     _getMessageClasses(role) {
-        const baseClasses = 'p-3 rounded-lg mb-2 max-w-lg break-words';
+        const baseClasses = 'p-3 rounded-lg break-words max-w-xs sm:max-w-md md:max-w-lg lg:max-w-xl';
 
         if (role === 'User') {
-            return `${baseClasses} bg-indigo-500 text-white ml-auto`;
+            return `${baseClasses} bg-indigo-500 text-white`;
         } else {
-            return `${baseClasses} bg-gray-200 text-gray-800 mr-auto`;
+            return `${baseClasses} bg-gray-200 text-gray-800`;
         }
     }
 
