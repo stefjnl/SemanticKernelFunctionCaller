@@ -9,18 +9,15 @@ namespace SemanticKernelFunctionCaller.API.Controllers;
 [Route("api/[controller]")]
 public class TestController : ControllerBase
 {
-    private readonly SendOrchestratedChatMessageUseCase _sendOrchestratedMessageUseCase;
-    private readonly ExecutePromptTemplateUseCase _executePromptTemplateUseCase;
-    private readonly ExecuteWorkflowUseCase _executeWorkflowUseCase;
+    private readonly SendOrchestratedChatMessageUseCaseV2 _sendOrchestratedMessageUseCase;
+    private readonly ExecutePromptTemplateUseCaseV2 _executePromptTemplateUseCase;
 
     public TestController(
-        SendOrchestratedChatMessageUseCase sendOrchestratedMessageUseCase,
-        ExecutePromptTemplateUseCase executePromptTemplateUseCase,
-        ExecuteWorkflowUseCase executeWorkflowUseCase)
+        SendOrchestratedChatMessageUseCaseV2 sendOrchestratedMessageUseCase,
+        ExecutePromptTemplateUseCaseV2 executePromptTemplateUseCase)
     {
         _sendOrchestratedMessageUseCase = sendOrchestratedMessageUseCase;
         _executePromptTemplateUseCase = executePromptTemplateUseCase;
-        _executeWorkflowUseCase = executeWorkflowUseCase;
     }
 
     [HttpGet("orchestration")]
@@ -39,7 +36,7 @@ public class TestController : ControllerBase
                 }
             };
 
-            var response = await _sendOrchestratedMessageUseCase.ExecuteAsync(chatRequest);
+            var response = await _sendOrchestratedMessageUseCase.ExecuteAsync(chatRequest, CancellationToken.None);
             return Ok(new { Status = "Success", Response = response });
         }
         catch (Exception ex)
@@ -63,7 +60,7 @@ public class TestController : ControllerBase
                 }
             };
 
-            var response = await _executePromptTemplateUseCase.ExecuteAsync(templateRequest);
+            var response = await _executePromptTemplateUseCase.ExecuteAsync(templateRequest, CancellationToken.None);
             return Ok(new { Status = "Success", Response = response });
         }
         catch (Exception ex)
@@ -72,24 +69,4 @@ public class TestController : ControllerBase
         }
     }
 
-    [HttpGet("workflow")]
-    public async Task<IActionResult> TestWorkflow()
-    {
-        try
-        {
-            // Test workflow
-            var workflowRequest = new WorkflowRequestDto
-            {
-                Goal = "Find the current weather in London and summarize it",
-                AvailableFunctions = new List<string> { "Weather" }
-            };
-
-            var response = await _executeWorkflowUseCase.ExecuteAsync(workflowRequest);
-            return Ok(new { Status = "Success", Response = response });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { Status = "Error", Message = ex.Message });
-        }
-    }
 }

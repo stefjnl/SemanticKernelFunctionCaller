@@ -43,11 +43,7 @@ builder.Services.AddSwaggerGen();
 // Register providers and configurations
 builder.Services.AddProviderServices(builder.Configuration);
 
-// Register use cases
-builder.Services.AddScoped<StreamChatMessageUseCase>();
-
-// Register orchestration use cases
-builder.Services.AddScoped<StreamOrchestratedChatMessageUseCase>();
+// Use cases are now registered in ServiceCollectionExtensions
 
 // Register configuration manager
 builder.Services.AddSingleton<IProviderConfigurationManager, ProviderConfigurationManager>();

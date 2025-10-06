@@ -12,20 +12,17 @@ public class ChatController : ControllerBase
     private readonly SendOrchestratedChatMessageUseCaseV2 _orchestratedChatUseCase;
     private readonly ExecutePromptTemplateUseCaseV2 _promptTemplateUseCase;
     private readonly StreamOrchestratedChatMessageUseCaseV2 _streamOrchestratedUseCase;
-    private readonly IStreamChatMessageUseCase _streamMessageUseCase;
     private readonly ILogger<ChatController> _logger;
 
     public ChatController(
         SendOrchestratedChatMessageUseCaseV2 orchestratedChatUseCase,
         ExecutePromptTemplateUseCaseV2 promptTemplateUseCase,
         StreamOrchestratedChatMessageUseCaseV2 streamOrchestratedUseCase,
-        IStreamChatMessageUseCase streamMessageUseCase,
         ILogger<ChatController> logger)
     {
         _orchestratedChatUseCase = orchestratedChatUseCase;
         _promptTemplateUseCase = promptTemplateUseCase;
         _streamOrchestratedUseCase = streamOrchestratedUseCase;
-        _streamMessageUseCase = streamMessageUseCase;
         _logger = logger;
     }
 
@@ -49,32 +46,6 @@ public class ChatController : ControllerBase
         }
     }
 
-    [HttpPost("stream")]
-    public async Task StreamMessage(ChatRequestDto request)
-    {
-        Response.ContentType = "text/event-stream";
-        Response.Headers.Append("Cache-Control", "no-cache");
-        Response.Headers.Append("Connection", "keep-alive");
-
-        try
-        {
-            var stream = _streamMessageUseCase.ExecuteAsync(request, HttpContext.RequestAborted);
-
-            await foreach (var update in stream)
-            {
-                var jsonUpdate = JsonSerializer.Serialize(update);
-                await Response.WriteAsync($"data: {jsonUpdate}\n\n");
-                await Response.Body.FlushAsync();
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "An error occurred during streaming.");
-            var jsonError = JsonSerializer.Serialize(new { error = $"An error occurred: {ex.Message}" });
-            await Response.WriteAsync($"data: {jsonError}\n\n");
-            await Response.Body.FlushAsync();
-        }
-    }
 
     [HttpPost("orchestrated")]
     public async Task<IActionResult> SendOrchestratedMessage(ChatRequestDto request)

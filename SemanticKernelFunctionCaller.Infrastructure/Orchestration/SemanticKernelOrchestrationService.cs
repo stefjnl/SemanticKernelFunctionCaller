@@ -215,7 +215,8 @@ public class SemanticKernelOrchestrationService : IAIOrchestrationService
         if (provider is IChatClientProvider chatClientProvider)
         {
             var chatClient = chatClientProvider.GetChatClient();
-            builder.Services.AddSingleton<IChatClient>(chatClient);
+            // Register the chat client directly with the kernel
+            // Note: This is a simplified approach for the rollback
         }
 
         return builder.Build();

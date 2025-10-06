@@ -72,7 +72,7 @@ public class PromptTemplateManager
     /// <param name="variables">The variables to substitute</param>
     /// <returns>The rendered prompt</returns>
     /// <exception cref="ArgumentException">Thrown when required variables are missing</exception>
-    public async Task<string> RenderTemplateAsync(PromptTemplate template, IDictionary<string, object?> variables)
+    public string RenderTemplateAsync(PromptTemplate template, IDictionary<string, object?> variables)
     {
         try
         {
@@ -86,7 +86,7 @@ public class PromptTemplateManager
                 var placeholder = $"{{{{{variable.Key}}}}}";
                 result = result.Replace(placeholder, variable.Value.ToString());
             }
-            return Task.FromResult(result);
+            return result;
         }
         catch (ArgumentException)
         {
