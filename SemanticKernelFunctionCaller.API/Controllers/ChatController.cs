@@ -22,18 +22,32 @@ public class ChatController : ControllerBase
         IStreamChatMessageUseCase streamMessageUseCase,
         ILogger<ChatController> logger)
     {
-        _getProvidersUseCase = getProvidersUseCase;
-        _getModelsUseCase = getModelsUseCase;
-        _sendMessageUseCase = sendMessageUseCase;
-        _streamMessageUseCase = streamMessageUseCase;
-        _logger = logger;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _logger.LogInformation("ChatController constructor - DI injection starting");
+        
+        _getProvidersUseCase = getProvidersUseCase ?? throw new ArgumentNullException(nameof(getProvidersUseCase));
+        _getModelsUseCase = getModelsUseCase ?? throw new ArgumentNullException(nameof(getModelsUseCase));
+        _sendMessageUseCase = sendMessageUseCase ?? throw new ArgumentNullException(nameof(sendMessageUseCase));
+        _streamMessageUseCase = streamMessageUseCase ?? throw new ArgumentNullException(nameof(streamMessageUseCase));
+        
+        _logger.LogInformation("ChatController constructor - All dependencies injected successfully");
     }
 
     [HttpGet("providers")]
     public IActionResult GetProviders()
     {
-        var providers = _getProvidersUseCase.Execute();
-        return Ok(providers);
+        try
+        {
+            _logger.LogInformation("GetProviders endpoint called");
+            var providers = _getProvidersUseCase.Execute();
+            _logger.LogInformation("Successfully retrieved {Count} providers", providers?.Count() ?? 0);
+            return Ok(providers);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in GetProviders endpoint");
+            return StatusCode(500, $"Internal server error: {ex.Message}");
+        }
     }
 
     [HttpGet("providers/{providerId}/models")]

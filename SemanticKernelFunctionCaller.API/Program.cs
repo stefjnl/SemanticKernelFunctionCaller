@@ -45,11 +45,11 @@ builder.Services.AddSwaggerGen();
 // Register providers and configurations
 builder.Services.AddProviderServices(builder.Configuration);
 
-// Register use cases
-builder.Services.AddScoped<GetAvailableProvidersUseCase>();
-builder.Services.AddScoped<GetProviderModelsUseCase>();
-builder.Services.AddScoped<SendChatMessageUseCase>();
-builder.Services.AddScoped<StreamChatMessageUseCase>();
+// Register use cases - FIX: Register interfaces instead of concrete classes
+builder.Services.AddScoped<IGetAvailableProvidersUseCase, GetAvailableProvidersUseCase>();
+builder.Services.AddScoped<IGetProviderModelsUseCase, GetProviderModelsUseCase>();
+builder.Services.AddScoped<ISendChatMessageUseCase, SendChatMessageUseCase>();
+builder.Services.AddScoped<IStreamChatMessageUseCase, StreamChatMessageUseCase>();
 
 // Register configuration manager
 builder.Services.AddSingleton<IProviderConfigurationManager, ProviderConfigurationManager>();
