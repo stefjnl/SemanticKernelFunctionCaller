@@ -15,12 +15,8 @@ public class ConfigurableOpenAIChatProvider : BaseChatProvider
         string modelId,
         string endpoint,
         string providerName,
-        ILogger logger) : base(providerName, logger, modelId)
+        ILogger logger) : base(apiKey, modelId, endpoint, providerName, logger)
     {
-        ArgumentNullException.ThrowIfNull(apiKey);
-        ArgumentNullException.ThrowIfNull(endpoint);
-
-        // Using the static CreateChatClient method from the base class for consistency
-        _chatClient = CreateChatClient(apiKey, modelId, endpoint);
+        // Base class handles all common initialization
     }
 }

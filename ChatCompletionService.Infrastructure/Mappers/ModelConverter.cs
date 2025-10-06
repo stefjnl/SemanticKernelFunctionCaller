@@ -15,10 +15,6 @@ public static class ModelConverter
         return new ProviderChatMessage(new Microsoft.Extensions.AI.ChatRole(domainMessage.Role.ToString()), domainMessage.Content);
     }
 
-    public static ProviderChatMessage ToProviderMessage(MessageDto dtoMessage)
-    {
-        return new ProviderChatMessage(new Microsoft.Extensions.AI.ChatRole(dtoMessage.Role.ToString()), dtoMessage.Content);
-    }
 
     public static DomainChatMessage ToDomainMessage(ProviderChatMessage providerMessage)
     {
