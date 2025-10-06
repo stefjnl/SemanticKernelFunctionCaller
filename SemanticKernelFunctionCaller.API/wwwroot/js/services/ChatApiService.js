@@ -5,6 +5,7 @@
 export class ChatApiService {
     constructor(baseUrl = '/api/chat') {
         this.baseUrl = baseUrl;
+        this.providersBaseUrl = '/api/providers';
     }
 
     /**
@@ -13,7 +14,7 @@ export class ChatApiService {
      */
     async fetchProviders() {
         try {
-            const response = await fetch(`${this.baseUrl}/providers`);
+            const response = await fetch(`${this.providersBaseUrl}`);
             if (!response.ok) {
                 throw new Error(`Failed to fetch providers: ${response.status} ${response.statusText}`);
             }
@@ -35,7 +36,7 @@ export class ChatApiService {
         }
 
         try {
-            const response = await fetch(`${this.baseUrl}/providers/${providerId}/models`);
+            const response = await fetch(`${this.providersBaseUrl}/${providerId}/models`);
             if (!response.ok) {
                 throw new Error(`Failed to fetch models: ${response.status} ${response.statusText}`);
             }
