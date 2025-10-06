@@ -162,7 +162,7 @@ public class ChatController : ControllerBase
                     {
                         Name = param.Name,
                         Description = param.Description,
-                        Type = param.ParameterType.Name,
+                        Type = param.ParameterType?.Name ?? "Unknown",
                         IsRequired = param.IsRequired
                     })
                 }))
