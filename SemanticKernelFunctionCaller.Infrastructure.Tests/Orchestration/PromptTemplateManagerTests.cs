@@ -64,7 +64,7 @@ public class PromptTemplateManagerTests
         var variables = new Dictionary<string, object?> { { "variable", "test value" } };
 
         // Act
-        var result = await _manager.RenderTemplateAsync(template, variables);
+        var result = _manager.RenderTemplateAsync(template, variables);
 
         // Assert
         Assert.NotNull(result);
@@ -80,7 +80,7 @@ public class PromptTemplateManagerTests
         var variables = new Dictionary<string, object?> { { "differentVariable", "test value" } };
 
         // Act & Assert
-        await Assert.ThrowsAsync<ArgumentException>(() => _manager.RenderTemplateAsync(template, variables));
+        Assert.Throws<ArgumentException>(() => _manager.RenderTemplateAsync(template, variables));
     }
 
     [Fact]
