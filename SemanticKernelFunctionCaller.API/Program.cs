@@ -12,6 +12,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using System.Text.Json.Serialization;
 using Microsoft.SemanticKernel;
+using Microsoft.Extensions.Caching.Memory;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +23,9 @@ builder.Logging.AddDebug();
 
 // Add ILoggerFactory for Microsoft.Extensions.AI
 builder.Services.AddLogging();
+
+// Add Memory Cache for YouTubeAnalysisPlugin
+builder.Services.AddMemoryCache();
 
 // Configure and validate settings at startup
 builder.Services.AddOptions<ProviderSettings>()
@@ -107,7 +111,14 @@ builder.Services.AddSingleton<Kernel>(sp =>
     
     // Add TimePlugin
     kernelBuilder.Plugins.AddFromType<TimePlugin>();
-    
+
+    // Add YouTubeAnalysisPlugin with dependency injection
+    var youTubePlugin = new YouTubeAnalysisPlugin(
+        sp.GetRequiredService<IMemoryCache>(),
+        sp.GetRequiredService<ILogger<YouTubeAnalysisPlugin>>());
+    kernelBuilder.Plugins.AddFromObject(youTubePlugin);
+
+
     logger.LogInformation("Semantic Kernel configured with provider: {Provider}, Model: {Model}",
         provider, providerSettings.ModelId);
     
