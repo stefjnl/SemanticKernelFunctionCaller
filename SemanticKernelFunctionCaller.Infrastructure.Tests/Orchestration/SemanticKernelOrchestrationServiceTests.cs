@@ -2,11 +2,10 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using SemanticKernelFunctionCaller.Application.Interfaces;
+using SemanticKernelFunctionCaller.Application.DTOs;
 using SemanticKernelFunctionCaller.Domain.Entities;
 using SemanticKernelFunctionCaller.Infrastructure.Configuration;
-using SemanticKernelFunctionCaller.Infrastructure.Interfaces;
 using SemanticKernelFunctionCaller.Infrastructure.Orchestration;
-using SemanticKernelFunctionCaller.Infrastructure.Plugins;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -54,7 +53,7 @@ public class SemanticKernelOrchestrationServiceTests
         // Arrange
         var messages = new List<ChatMessage>
         {
-            new() { Role = ChatRole.User, Content = "Hello" }
+            new() { Role = SemanticKernelFunctionCaller.Domain.Enums.ChatRole.User, Content = "Hello" }
         };
 
         // Act
@@ -73,12 +72,7 @@ public class SemanticKernelOrchestrationServiceTests
         var templateRequest = new PromptTemplateDto
         {
             TemplateName = "TestTemplate",
-            Variables = new Dictionary<string, object> { { "variable", "test value" } },
-            ExecutionSettings = new PromptExecutionSettings
-            {
-                Temperature = 0.7,
-                MaxTokens = 100
-            }
+            Variables = new Dictionary<string, object> { { "variable", "test value" } }
         };
 
         // Act
@@ -97,7 +91,7 @@ public class SemanticKernelOrchestrationServiceTests
         // Arrange
         var messages = new List<ChatMessage>
         {
-            new() { Role = ChatRole.User, Content = "Hello" }
+            new() { Role = SemanticKernelFunctionCaller.Domain.Enums.ChatRole.User, Content = "Hello" }
         };
 
         // Act

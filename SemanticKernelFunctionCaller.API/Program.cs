@@ -64,40 +64,6 @@ builder.Services.AddCors(options =>
        });
    });
 
-   // Add rate limiting
-   builder.Services.AddRateLimiter(options =>
-   {
-       options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
-       {
-           // Use IP address as the partition key
-           var remoteIpAddress = context.Connection.RemoteIpAddress?.ToString() ?? "anonymous";
-           return RateLimitPartition.GetFixedWindowLimiter(remoteIpAddress, partition => new FixedWindowRateLimiterOptions
-           {
-               AutoReplenishment = true,
-               PermitLimit = 100, // 100 requests per window
-               Window = TimeSpan.FromMinutes(1) // Per minute
-           });
-       });
-
-       // Add specific rate limits for orchestrated endpoints
-       options.AddPolicy("OrchestratedEndpoints", context =>
-       {
-           var remoteIpAddress = context.Connection.RemoteIpAddress?.ToString() ?? "anonymous";
-           return RateLimitPartition.GetFixedWindowLimiter(remoteIpAddress, partition => new FixedWindowRateLimiterOptions
-           {
-               AutoReplenishment = true,
-               PermitLimit = 20, // 20 requests per window for orchestrated endpoints
-               Window = TimeSpan.FromMinutes(1) // Per minute
-           });
-       });
-
-       // Configure rate limit exceeded response
-       options.OnRejected = async (context, token) =>
-       {
-           context.HttpContext.Response.StatusCode = 429;
-           await context.HttpContext.Response.WriteAsync("Too Many Requests", token);
-       };
-   });
 
    var app = builder.Build();
 
@@ -116,9 +82,6 @@ app.UseCors("AllowAll");
 
 // Add exception middleware before authorization
 app.UseMiddleware<ExceptionMiddleware>();
-
-// Add rate limiting middleware
-app.UseRateLimiter();
 
 app.UseAuthorization();
 
