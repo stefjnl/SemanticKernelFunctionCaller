@@ -19,23 +19,26 @@ namespace ChatCompletionService.Infrastructure.Providers;
 public abstract class BaseChatProvider : IChatCompletionService
 {
     protected IChatClient _chatClient;
-    protected readonly string _modelId;
-    protected readonly string _providerName;
-    protected ILogger _logger;
-
-    /// <summary>
-    /// Initializes a new instance of the BaseChatProvider class.
-    /// </summary>
-    /// <param name="providerName">The name of the provider.</param>
-    /// <param name="logger">The logger instance.</param>
-    /// <param name="modelId">The model identifier.</param>
-    protected BaseChatProvider(string providerName, ILogger logger, string modelId)
-    {
-        _providerName = providerName;
-        _logger = logger;
-        _modelId = modelId;
-        _chatClient = null!;
-    }
+        protected readonly string _modelId;
+        protected readonly string _providerName;
+        protected readonly string? _systemPrompt;  // Add this
+        protected ILogger _logger;
+    
+        /// <summary>
+        /// Initializes a new instance of the BaseChatProvider class.
+        /// </summary>
+        /// <param name="providerName">The name of the provider.</param>
+        /// <param name="logger">The logger instance.</param>
+        /// <param name="modelId">The model identifier.</param>
+        /// <param name="systemPrompt">Optional system prompt to inject.</param>
+        protected BaseChatProvider(string providerName, ILogger logger, string modelId, string? systemPrompt = null)  // Add parameter
+        {
+            _providerName = providerName;
+            _logger = logger;
+            _modelId = modelId;
+            _systemPrompt = systemPrompt;
+            _chatClient = null!;
+        }
 
     /// <summary>
     /// Initialize the chat client using the injected factory.
@@ -62,10 +65,10 @@ public abstract class BaseChatProvider : IChatCompletionService
     {
         ArgumentNullException.ThrowIfNull(messages);
 
-        var providerMessages = messages.Select(ModelConverter.ToProviderMessage).ToList();
-        var response = await _chatClient.GetResponseAsync(providerMessages, cancellationToken: cancellationToken);
-
-        var domainMessage = ModelConverter.ToDomainMessage(response.Messages.First());
+        var providerMessages = PrepareMessages(messages);
+                var response = await _chatClient.GetResponseAsync(providerMessages, cancellationToken: cancellationToken);
+        
+                var domainMessage = ModelConverter.ToDomainMessage(response.Messages.First());
         return new DomainChatResponse
         {
             Message = domainMessage,
@@ -86,8 +89,8 @@ public abstract class BaseChatProvider : IChatCompletionService
     {
         ArgumentNullException.ThrowIfNull(messages);
 
-        var providerMessages = messages.Select(ModelConverter.ToProviderMessage).ToList();
-        var streamingResponse = _chatClient.GetStreamingResponseAsync(providerMessages, cancellationToken: cancellationToken);
+        var providerMessages = PrepareMessages(messages);
+                var streamingResponse = _chatClient.GetStreamingResponseAsync(providerMessages, cancellationToken: cancellationToken);
 
         await foreach (var update in streamingResponse.WithCancellation(cancellationToken))
         {
@@ -128,6 +131,30 @@ public abstract class BaseChatProvider : IChatCompletionService
     {
         if (string.IsNullOrEmpty(apiKey))
             throw new ArgumentException("API key cannot be null or empty", nameof(apiKey));
+    }
+
+    /// <summary>
+    /// Prepares messages by optionally injecting system prompt
+    /// </summary>
+    protected virtual List<ProviderChatMessage> PrepareMessages(
+        IEnumerable<DomainChatMessage> messages)
+    {
+        var messageList = messages.Select(ModelConverter.ToProviderMessage).ToList();
+
+        // Remove any system messages from user conversation
+                messageList.RemoveAll(m =>
+                    m.Role.ToString().Equals("System", StringComparison.OrdinalIgnoreCase));
+        
+                // Then inject yours at position 0
+                if (!string.IsNullOrWhiteSpace(_systemPrompt))
+                {
+                    messageList.Insert(0, new ProviderChatMessage(
+                        new Microsoft.Extensions.AI.ChatRole("System"),
+                        _systemPrompt
+                    ));
+                }
+
+        return messageList;
     }
 
 }

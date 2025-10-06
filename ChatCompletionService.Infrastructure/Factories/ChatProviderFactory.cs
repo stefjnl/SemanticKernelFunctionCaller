@@ -13,19 +13,22 @@ public class ChatProviderFactory : IProviderFactory
     private readonly ILogger<ChatProviderFactory> _logger;
     private readonly IOptions<ProviderSettings> _providerSettings;
     private readonly Func<string, string, string, IChatClient> _chatClientFactory;
-    private readonly Dictionary<ProviderType, Func<string, IChatCompletionService>> _providerFactories;
-
-    public ChatProviderFactory(
-        IOptions<ProviderSettings> providerSettings,
-        ILogger<ChatProviderFactory> logger,
-        ILoggerFactory loggerFactory,
-        Func<string, string, string, IChatClient> chatClientFactory)
-    {
-        _logger = logger;
-        _providerSettings = providerSettings;
-        _chatClientFactory = chatClientFactory;
-        
-        var configurableLogger = loggerFactory.CreateLogger<ConfigurableOpenAIChatProvider>();
+        private readonly Dictionary<ProviderType, Func<string, IChatCompletionService>> _providerFactories;
+        private readonly IOptions<ChatSettings> _chatSettings;  // Add this
+    
+        public ChatProviderFactory(
+            IOptions<ProviderSettings> providerSettings,
+            ILogger<ChatProviderFactory> logger,
+            ILoggerFactory loggerFactory,
+            Func<string, string, string, IChatClient> chatClientFactory,
+            IOptions<ChatSettings> chatSettings)  // Add this
+        {
+            _logger = logger;
+            _providerSettings = providerSettings;
+            _chatSettings = chatSettings;  // Store this
+            _chatClientFactory = chatClientFactory;
+            
+            var configurableLogger = loggerFactory.CreateLogger<ConfigurableOpenAIChatProvider>();
 
         _providerFactories = new Dictionary<ProviderType, Func<string, IChatCompletionService>>
         {
@@ -33,26 +36,34 @@ public class ChatProviderFactory : IProviderFactory
                 ProviderType.OpenRouter, (modelId) =>
                 {
                     var config = providerSettings.Value.OpenRouter;
-                    return new ConfigurableOpenAIChatProvider(
-                        config.ApiKey,
-                        modelId,
-                        config.Endpoint,
-                        "OpenRouter",
-                        configurableLogger,
-                        _chatClientFactory);
+                                        var systemPrompt = config.SystemPrompt
+                                            ?? _chatSettings.Value.DefaultSystemPrompt;
+                                        
+                                        return new ConfigurableOpenAIChatProvider(
+                                            config.ApiKey,
+                                            modelId,
+                                            config.Endpoint,
+                                            "OpenRouter",
+                                            configurableLogger,
+                                            _chatClientFactory,
+                                            _chatSettings.Value.EnableSystemPrompt ? systemPrompt : null);
                 }
             },
             {
                 ProviderType.NanoGPT, (modelId) =>
                 {
                     var config = providerSettings.Value.NanoGPT;
-                    return new ConfigurableOpenAIChatProvider(
-                        config.ApiKey,
-                        modelId,
-                        config.Endpoint,
-                        "NanoGpt",
-                        configurableLogger,
-                        _chatClientFactory);
+                                        var systemPrompt = config.SystemPrompt
+                                            ?? _chatSettings.Value.DefaultSystemPrompt;
+                                        
+                                        return new ConfigurableOpenAIChatProvider(
+                                            config.ApiKey,
+                                            modelId,
+                                            config.Endpoint,
+                                            "NanoGpt",
+                                            configurableLogger,
+                                            _chatClientFactory,
+                                            _chatSettings.Value.EnableSystemPrompt ? systemPrompt : null);
                 }
             }
         };
