@@ -1,30 +1,30 @@
 ## Core Phase 2 Features (Priority Order):
 
-### 1. Semantic Kernel Integration (Weeks 1-3)
+### 1. Semantic Kernel Integration
 - Add IAIOrchestrationService interface in Application layer
 - Create Semantic Kernel wrapper that sits above Microsoft.Extensions.AI
 - Implement kernel plugins for advanced orchestration
 - Add prompt templates and multi-step AI workflows
 
-### 2. Function Calling Architecture (Weeks 4-6)
+### 2. Function Calling Architecture
 - Web Search integration (Tavily/Serper API)
 - File System tools with security boundaries
 - KernelFunction attributes for automatic tool discovery
 - FunctionChoiceBehavior.Auto() for intelligent tool selection
 
-### 3. Conversation Persistence (Weeks 7-8)
+### 3. Conversation Persistence
 - PostgreSQL database integration
 - Conversation entity and repository pattern
 - User-specific conversation storage
 - Load/save functionality in frontend
 
-### 4. User Authentication (Weeks 9-10)
+### 4. User Authenticatio
 - ASP.NET Core Identity integration
 - JWT token authentication
 - User registration/login endpoints
 - Conversation isolation per user
 
-### 5. Advanced Infrastructure (Weeks 11-18)
+### 5. Advanced Infrastructure 
 - Global exception middleware (replacing basic try-catch)
 - Structured logging with Serilog and Application Insights
 - Distributed caching for performance

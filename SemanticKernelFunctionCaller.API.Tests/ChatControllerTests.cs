@@ -15,6 +15,7 @@ using Moq;
 using SemanticKernelFunctionCaller.API.Controllers;
 using SemanticKernelFunctionCaller.Application.DTOs;
 using SemanticKernelFunctionCaller.Application.Interfaces;
+using SemanticKernelFunctionCaller.Application.UseCases;
 using SemanticKernelFunctionCaller.Domain.Entities;
 using SemanticKernelFunctionCaller.Domain.Enums;
 using Xunit;
@@ -35,12 +36,15 @@ public class ChatControllerTests
         _mockGetModelsUseCase = new Mock<IGetProviderModelsUseCase>();
         _mockSendMessageUseCase = new Mock<ISendChatMessageUseCase>();
         _mockStreamMessageUseCase = new Mock<IStreamChatMessageUseCase>();
-
         _controller = new ChatController(
             _mockGetProvidersUseCase.Object,
             _mockGetModelsUseCase.Object,
             _mockSendMessageUseCase.Object,
             _mockStreamMessageUseCase.Object,
+            null!, // SendOrchestratedChatMessageUseCase - not used in basic tests
+            null!, // StreamOrchestratedChatMessageUseCase - not used in basic tests
+            null!, // ExecutePromptTemplateUseCase - not used in basic tests
+            null!, // ExecuteWorkflowUseCase - not used in basic tests
             NullLogger<ChatController>.Instance);
     }
 

@@ -1,11 +1,12 @@
 using SemanticKernelFunctionCaller.Application.Interfaces;
 using SemanticKernelFunctionCaller.Application.DTOs;
+using SemanticKernelFunctionCaller.Application.Requests;
 using SemanticKernelFunctionCaller.Domain.Enums;
 using SemanticKernelFunctionCaller.Domain.Entities;
 
 namespace SemanticKernelFunctionCaller.Application.UseCases;
 
-public class SendChatMessageUseCase : ISendChatMessageUseCase
+public class SendChatMessageUseCase : ISendChatMessageUseCase, IRequestHandler<SendChatMessageRequest, ChatResponseDto>
 {
     private readonly IProviderFactory _providerFactory;
 
@@ -29,6 +30,11 @@ public class SendChatMessageUseCase : ISendChatMessageUseCase
         var provider = _providerFactory.CreateProvider(providerType.ToString(), request.ModelId);
         var response = await provider.SendMessageAsync(messages);
         return MapToDto(response);
+    }
+
+    public async Task<ChatResponseDto> Handle(SendChatMessageRequest request, CancellationToken cancellationToken = default)
+    {
+        return await ExecuteAsync(request.Request);
     }
 
     private static ChatResponseDto MapToDto(ChatResponse response)

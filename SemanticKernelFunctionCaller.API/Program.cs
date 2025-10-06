@@ -1,10 +1,8 @@
 using SemanticKernelFunctionCaller.API.HealthChecks;
 using SemanticKernelFunctionCaller.API.Middleware;
 using SemanticKernelFunctionCaller.Application.Interfaces;
-using SemanticKernelFunctionCaller.Application.UseCases;
 using SemanticKernelFunctionCaller.Infrastructure.Configuration;
 using SemanticKernelFunctionCaller.Infrastructure.Extensions;
-using SemanticKernelFunctionCaller.Infrastructure.Factories;
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -46,10 +44,10 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddProviderServices(builder.Configuration);
 
 // Register use cases
-builder.Services.AddScoped<GetAvailableProvidersUseCase>();
-builder.Services.AddScoped<GetProviderModelsUseCase>();
-builder.Services.AddScoped<SendChatMessageUseCase>();
 builder.Services.AddScoped<StreamChatMessageUseCase>();
+
+// Register orchestration use cases
+builder.Services.AddScoped<StreamOrchestratedChatMessageUseCase>();
 
 // Register configuration manager
 builder.Services.AddSingleton<IProviderConfigurationManager, ProviderConfigurationManager>();
@@ -67,10 +65,45 @@ builder.Services.AddCors(options =>
             builder.AllowAnyOrigin()
                    .AllowAnyMethod()
                    .AllowAnyHeader();
-        });
-});
+       });
+   });
 
-var app = builder.Build();
+   // Add rate limiting
+   builder.Services.AddRateLimiter(options =>
+   {
+       options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+       {
+           // Use IP address as the partition key
+           var remoteIpAddress = context.Connection.RemoteIpAddress?.ToString() ?? "anonymous";
+           return RateLimitPartition.GetFixedWindowLimiter(remoteIpAddress, partition => new FixedWindowRateLimiterOptions
+           {
+               AutoReplenishment = true,
+               PermitLimit = 100, // 100 requests per window
+               Window = TimeSpan.FromMinutes(1) // Per minute
+           });
+       });
+
+       // Add specific rate limits for orchestrated endpoints
+       options.AddPolicy("OrchestratedEndpoints", context =>
+       {
+           var remoteIpAddress = context.Connection.RemoteIpAddress?.ToString() ?? "anonymous";
+           return RateLimitPartition.GetFixedWindowLimiter(remoteIpAddress, partition => new FixedWindowRateLimiterOptions
+           {
+               AutoReplenishment = true,
+               PermitLimit = 20, // 20 requests per window for orchestrated endpoints
+               Window = TimeSpan.FromMinutes(1) // Per minute
+           });
+       });
+
+       // Configure rate limit exceeded response
+       options.OnRejected = async (context, token) =>
+       {
+           context.HttpContext.Response.StatusCode = 429;
+           await context.HttpContext.Response.WriteAsync("Too Many Requests", token);
+       };
+   });
+
+   var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -87,6 +120,9 @@ app.UseCors("AllowAll");
 
 // Add exception middleware before authorization
 app.UseMiddleware<ExceptionMiddleware>();
+
+// Add rate limiting middleware
+app.UseRateLimiter();
 
 app.UseAuthorization();
 

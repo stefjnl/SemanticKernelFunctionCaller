@@ -1,0 +1,4 @@
+Extract key entities from the following text:
+{{$input}}
+
+Entities:

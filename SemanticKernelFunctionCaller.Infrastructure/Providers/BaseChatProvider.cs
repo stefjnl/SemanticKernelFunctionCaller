@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using SemanticKernelFunctionCaller.Application.Interfaces;
+using SemanticKernelFunctionCaller.Infrastructure.Interfaces;
 using Microsoft.Extensions.Logging;
 using SemanticKernelFunctionCaller.Domain.Entities;
 using SemanticKernelFunctionCaller.Domain.ValueObjects;
@@ -16,7 +17,7 @@ using DomainChatResponse = SemanticKernelFunctionCaller.Domain.Entities.ChatResp
 
 namespace SemanticKernelFunctionCaller.Infrastructure.Providers;
 
-public abstract class BaseChatProvider : ISemanticKernelFunctionCaller
+public abstract class BaseChatProvider : IChatClientProvider
 {
     protected IChatClient _chatClient;
         protected readonly string _modelId;
@@ -109,6 +110,15 @@ public abstract class BaseChatProvider : ISemanticKernelFunctionCaller
     public virtual ProviderMetadata GetMetadata()
     {
         return new ProviderMetadata { Id = _providerName, DisplayName = _providerName };
+    }
+
+    /// <summary>
+    /// Gets the underlying IChatClient instance.
+    /// </summary>
+    /// <returns>The IChatClient instance used by this provider.</returns>
+    public IChatClient GetChatClient()
+    {
+        return _chatClient;
     }
 
     /// <summary>
