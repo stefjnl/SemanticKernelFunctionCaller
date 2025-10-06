@@ -1,6 +1,6 @@
 # Product Requirements Document (PRD)
 
-## ChatCompletionService - Enterprise AI Chat Application
+## SemanticKernelFunctionCaller - Enterprise AI Chat Application
 
 **Version:** 1.0 (Phase 1 - MVP)  
 **Date:** October 2025  
@@ -11,7 +11,7 @@
 
 ## 1. Executive Summary
 
-ChatCompletionService is an enterprise-grade AI chat application built to demonstrate mastery of .NET 9, Clean Architecture principles, and Microsoft's AI ecosystem (Microsoft.Extensions.AI with future Semantic Kernel integration). The application provides a unified interface for interacting with multiple AI providers while maintaining clean separation of concerns and scalability for future enhancements.
+SemanticKernelFunctionCaller is an enterprise-grade AI chat application built to demonstrate mastery of .NET 9, Clean Architecture principles, and Microsoft's AI ecosystem (Microsoft.Extensions.AI with future Semantic Kernel integration). The application provides a unified interface for interacting with multiple AI providers while maintaining clean separation of concerns and scalability for future enhancements.
 
 **Phase 1 Goal:** Build a solid foundation with provider abstraction, streaming chat, and clean architecture that can be extended in Phase 2 with Semantic Kernel, function calling, and advanced features.
 
@@ -48,7 +48,7 @@ ChatCompletionService is an enterprise-grade AI chat application built to demons
 **Application Layer** (Use Cases & Business Rules)
 
 - **Interfaces**:
-    - `IChatCompletionService` - Core chat abstraction
+    - `ISemanticKernelFunctionCaller` - Core chat abstraction
     - `IProviderFactory` - Creates provider instances
     - `IModelConfigurationService` - Manages model metadata
 - **DTOs**: `ChatRequestDto`, `ChatResponseDto`, `ModelInfoDto`, `ProviderInfoDto`
@@ -60,8 +60,8 @@ ChatCompletionService is an enterprise-grade AI chat application built to demons
 **Infrastructure Layer** (External Concerns)
 
 - **Provider Implementations**:
-    - `OpenRouterChatProvider : IChatCompletionService`
-    - `NanoGptChatProvider : IChatCompletionService`
+    - `OpenRouterChatProvider : ISemanticKernelFunctionCaller`
+    - `NanoGptChatProvider : ISemanticKernelFunctionCaller`
 - **Factories**: `ChatProviderFactory : IProviderFactory`
 - **Configuration**: `ProviderConfigurationManager`
 - **Microsoft.Extensions.AI Integration**: Wrapper around `IChatClient`
@@ -95,7 +95,7 @@ API → Application → Domain ← Infrastructure
 
 ### 4.1 Architecture Pattern
 
-**Provider Implementation Wrapper Pattern**: Each provider (OpenRouter, NanoGPT) implements `IChatCompletionService` (Application layer interface) but internally uses Microsoft.Extensions.AI's `IChatClient`.
+**Provider Implementation Wrapper Pattern**: Each provider (OpenRouter, NanoGPT) implements `ISemanticKernelFunctionCaller` (Application layer interface) but internally uses Microsoft.Extensions.AI's `IChatClient`.
 
 **Why This Approach:**
 
@@ -110,7 +110,7 @@ API → Application → Domain ← Infrastructure
 
 ```csharp
 // Infrastructure/Providers/OpenRouterChatProvider.cs
-public class OpenRouterChatProvider : IChatCompletionService
+public class OpenRouterChatProvider : ISemanticKernelFunctionCaller
 {
     private readonly IChatClient _chatClient;
     
@@ -144,7 +144,7 @@ public class OpenRouterChatProvider : IChatCompletionService
 **Key Points:**
 
 - Microsoft.Extensions.AI's `IChatClient` is an infrastructure detail
-- Application layer only knows about `IChatCompletionService`
+- Application layer only knows about `ISemanticKernelFunctionCaller`
 - Clean conversion between domain models and Microsoft.Extensions.AI types
 - Provider-specific configuration (endpoints, headers) isolated in Infrastructure
 
@@ -283,10 +283,10 @@ public class OpenRouterChatProvider : IChatCompletionService
 
 ### 6.2 Application Layer Interfaces
 
-**IChatCompletionService:**
+**ISemanticKernelFunctionCaller:**
 
 ```csharp
-public interface IChatCompletionService
+public interface ISemanticKernelFunctionCaller
 {
     Task<ChatResponse> SendMessageAsync(
         ChatRequest request, 
@@ -305,7 +305,7 @@ public interface IChatCompletionService
 ```csharp
 public interface IProviderFactory
 {
-    IChatCompletionService CreateProvider(ProviderType provider, string modelId);
+    ISemanticKernelFunctionCaller CreateProvider(ProviderType provider, string modelId);
     IEnumerable<ProviderInfo> GetAvailableProviders();
     IEnumerable<ModelInfo> GetModelsForProvider(ProviderType provider);
 }
@@ -332,7 +332,7 @@ public interface IProviderFactory
 **ChatController Streaming Endpoint:**
 
 - Sets response headers: `Content-Type: text/event-stream`
-- Calls `IChatCompletionService.StreamMessageAsync()`
+- Calls `ISemanticKernelFunctionCaller.StreamMessageAsync()`
 - Writes SSE format: `data: {json}\n\n`
 - Handles client disconnection gracefully
 - Flushes response stream after each token
@@ -531,17 +531,17 @@ Provider APIs (OpenRouter, NanoGPT)
 
 **Liskov Substitution:**
 
-- All providers implement `IChatCompletionService`
+- All providers implement `ISemanticKernelFunctionCaller`
 - Interchangeable at runtime
 
 **Interface Segregation:**
 
-- Focused interfaces (`IChatCompletionService`, `IProviderFactory`)
+- Focused interfaces (`ISemanticKernelFunctionCaller`, `IProviderFactory`)
 - No bloated interfaces with unused methods
 
 **Dependency Inversion:**
 
-- Depend on abstractions (`IChatCompletionService`), not concretions
+- Depend on abstractions (`ISemanticKernelFunctionCaller`), not concretions
 - Infrastructure depends on Application, not vice versa
 
 ### 11.2 DRY Principles
@@ -671,30 +671,30 @@ Provider APIs (OpenRouter, NanoGPT)
 ### 15.2 Folder Structure
 
 ```
-ChatCompletionService/
+SemanticKernelFunctionCaller/
 ├── src/
-│   ├── ChatCompletionService.Domain/
+│   ├── SemanticKernelFunctionCaller.Domain/
 │   │   ├── Entities/
 │   │   ├── Enums/
 │   │   └── ValueObjects/
-│   ├── ChatCompletionService.Application/
+│   ├── SemanticKernelFunctionCaller.Application/
 │   │   ├── Interfaces/
 │   │   ├── DTOs/
 │   │   └── UseCases/
-│   ├── ChatCompletionService.Infrastructure/
+│   ├── SemanticKernelFunctionCaller.Infrastructure/
 │   │   ├── Providers/
 │   │   │   ├── OpenRouterChatProvider.cs
 │   │   │   └── NanoGptChatProvider.cs
 │   │   ├── Factories/
 │   │   └── Configuration/
-│   ├── ChatCompletionService.API/
+│   ├── SemanticKernelFunctionCaller.API/
 │   │   ├── Controllers/
 │   │   ├── wwwroot/
 │   │   │   ├── index.html
 │   │   │   ├── js/
 │   │   │   └── css/
 │   │   └── Program.cs
-│   └── ChatCompletionService.AppHost/
+│   └── SemanticKernelFunctionCaller.AppHost/
 │       └── Program.cs
 └── README.md
 ```
@@ -715,3 +715,4 @@ Phase 1 is complete when:
 ✅ SOLID/DRY principles evident  
 ✅ README with architecture diagram  
 ✅ Can demo to interviewers confidently
+

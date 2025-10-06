@@ -1,4 +1,4 @@
-I'll conduct a comprehensive code review of the ChatCompletionService repository, examining Clean Architecture adherence, SOLID/DRY principles, and Microsoft.Extensions.AI compliance.## Code Review: ChatCompletionService
+I'll conduct a comprehensive code review of the SemanticKernelFunctionCaller repository, examining Clean Architecture adherence, SOLID/DRY principles, and Microsoft.Extensions.AI compliance.## Code Review: SemanticKernelFunctionCaller
 
 ### **Critical Issues**
 
@@ -47,7 +47,7 @@ public class ChatRequestDto {
 
 **Open/Closed:**
 - Adding new providers requires modifying `ChatProviderFactory.CreateProvider()` switch statement
-- Use registration pattern: `Dictionary<ProviderType, Func<string, string, IChatCompletionService>>`
+- Use registration pattern: `Dictionary<ProviderType, Func<string, string, ISemanticKernelFunctionCaller>>`
 
 **Dependency Inversion:**
 - `ChatProviderFactory` directly instantiates `ProviderConfigurationManager` (hard dependency)
@@ -63,7 +63,7 @@ public class ChatRequestDto {
 
 **Solution:** Base class or configuration-driven factory:
 ```csharp
-public class ConfigurableOpenAIChatProvider : IChatCompletionService {
+public class ConfigurableOpenAIChatProvider : ISemanticKernelFunctionCaller {
     public ConfigurableOpenAIChatProvider(string apiKey, string modelId, string endpoint)
 }
 ```
