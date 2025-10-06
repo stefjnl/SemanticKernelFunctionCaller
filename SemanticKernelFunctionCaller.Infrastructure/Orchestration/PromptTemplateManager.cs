@@ -79,11 +79,14 @@ public class PromptTemplateManager
             // Validate template variables before rendering
             ValidateTemplateVariables(template, variables);
             
-            var kernel = new Kernel(); // Create a temporary kernel for template rendering
-            var arguments = new KernelArguments(variables);
-            var promptTemplateConfig = new PromptTemplateConfig(template.Content);
-            var promptTemplate = new KernelPromptTemplate(promptTemplateConfig);
-            return await promptTemplate.RenderAsync(kernel, arguments);
+            // Simple template rendering - replace variables directly
+            var result = template.Content;
+            foreach (var variable in variables.Where(v => v.Value != null))
+            {
+                var placeholder = $"{{{{{variable.Key}}}}}";
+                result = result.Replace(placeholder, variable.Value.ToString());
+            }
+            return Task.FromResult(result);
         }
         catch (ArgumentException)
         {

@@ -131,18 +131,8 @@ public class SemanticKernelOrchestrationService : IAIOrchestrationService
         {
             await foreach (var update in streamingResult.WithCancellation(cancellationToken))
             {
-                // Check if this is a function call update
-                if (update.ToolCallId != null)
-                {
-                    yield return new StreamingChatUpdate
-                    {
-                        Content = $"Calling function: {update.Content}",
-                        Type = "function_call_start",
-                        FunctionName = update.Content,
-                        IsFinal = false
-                    };
-                }
-                else if (!string.IsNullOrEmpty(update.Content))
+                // Check if this update has content
+                if (!string.IsNullOrEmpty(update.Content))
                 {
                     yield return new StreamingChatUpdate
                     {
@@ -192,10 +182,8 @@ public class SemanticKernelOrchestrationService : IAIOrchestrationService
             kernel.FunctionInvocationFilters.Add(new FunctionInvocationFilterAdapter(functionCalls, _logger));
 
             // Execute the prompt template
-            var result = await kernel.InvokePromptAsync(
-                promptTemplate,
-                new KernelArguments(executionSettings),
-                cancellationToken);
+            var arguments = new KernelArguments(executionSettings);
+            var result = await kernel.InvokePromptAsync(promptTemplate, arguments);
 
             // No need to unsubscribe from filters
 
@@ -228,12 +216,7 @@ public class SemanticKernelOrchestrationService : IAIOrchestrationService
         {
             var chatClient = chatClientProvider.GetChatClient();
             builder.Services.AddSingleton<IChatClient>(chatClient);
-            builder.Plugins.AddFromType<Microsoft.SemanticKernel.ChatCompletion.ChatCompletionService>();
         }
-
-        // Register basic plugins directly (simplified approach)
-        builder.Plugins.AddFromType<WeatherPlugin>();
-        builder.Plugins.AddFromType<DateTimePlugin>();
 
         return builder.Build();
     }
