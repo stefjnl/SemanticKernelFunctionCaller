@@ -11,18 +11,19 @@ namespace ChatCompletionService.Infrastructure.Providers;
 public class ConfigurableOpenAIChatProvider : BaseChatProvider
 {
     public ConfigurableOpenAIChatProvider(
-        string apiKey,
-        string modelId,
-        string endpoint,
-        string providerName,
-        ILogger logger,
-        Func<string, string, string, IChatClient> chatClientFactory)
-        : base(providerName, logger, modelId)
-    {
-        ArgumentNullException.ThrowIfNull(apiKey);
-        ArgumentNullException.ThrowIfNull(endpoint);
-        ArgumentNullException.ThrowIfNull(chatClientFactory);
-
-        InitializeChatClient(chatClientFactory, apiKey, modelId, endpoint);
-    }
+            string apiKey,
+            string modelId,
+            string endpoint,
+            string providerName,
+            ILogger logger,
+            Func<string, string, string, IChatClient> chatClientFactory,
+            string? systemPrompt = null)  // Add parameter
+            : base(providerName, logger, modelId, systemPrompt)  // Pass to base
+        {
+            ArgumentNullException.ThrowIfNull(apiKey);
+            ArgumentNullException.ThrowIfNull(endpoint);
+            ArgumentNullException.ThrowIfNull(chatClientFactory);
+    
+            InitializeChatClient(chatClientFactory, apiKey, modelId, endpoint);
+        }
 }

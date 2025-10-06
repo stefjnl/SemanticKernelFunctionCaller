@@ -103,9 +103,17 @@ export class ChatView {
                         messageBubble.classList.add('prose', 'prose-slate', 'prose-sm');
                     }
                     
-                    // Highlight code blocks
+                    // Highlight code blocks and add language badges
                     messageBubble.querySelectorAll('pre code').forEach((block) => {
                         hljs.highlightElement(block);
+                        
+                        // Add language badge
+                        const language = block.className.replace('hljs language-', '').replace('hljs', '') || 'text';
+                        const pre = block.parentElement;
+                        const badge = document.createElement('div');
+                        badge.className = 'absolute top-2 right-2 text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded';
+                        badge.textContent = language;
+                        pre.appendChild(badge);
                     });
                     
                     // Add copy buttons to code blocks
@@ -117,7 +125,7 @@ export class ChatView {
                         
                         const copyBtn = document.createElement('button');
                         copyBtn.innerHTML = '📋';
-                        copyBtn.className = 'absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-gray-700 text-white px-2 py-1 rounded text-xs';
+                        copyBtn.className = 'absolute top-2 left-2 opacity-0 group-hover:opacity-100 bg-gray-700 text-white px-2 py-1 rounded text-xs transition-opacity';
                         copyBtn.onclick = () => {
                             navigator.clipboard.writeText(pre.textContent);
                             copyBtn.innerHTML = '✓';
@@ -234,9 +242,17 @@ export class ChatView {
             // Add prose classes for typography
             element.classList.add('prose', 'prose-slate', 'prose-sm');
             
-            // Highlight code blocks
+            // Highlight code blocks and add language badges
             element.querySelectorAll('pre code').forEach((block) => {
                 hljs.highlightElement(block);
+                
+                // Add language badge
+                const language = block.className.replace('hljs language-', '').replace('hljs', '') || 'text';
+                const pre = block.parentElement;
+                const badge = document.createElement('div');
+                badge.className = 'absolute top-2 right-2 text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded';
+                badge.textContent = language;
+                pre.appendChild(badge);
             });
             
             // Add copy buttons to code blocks
@@ -248,7 +264,7 @@ export class ChatView {
                 
                 const copyBtn = document.createElement('button');
                 copyBtn.innerHTML = '📋';
-                copyBtn.className = 'absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-gray-700 text-white px-2 py-1 rounded text-xs';
+                copyBtn.className = 'absolute top-2 left-2 opacity-0 group-hover:opacity-100 bg-gray-700 text-white px-2 py-1 rounded text-xs transition-opacity';
                 copyBtn.onclick = () => {
                     navigator.clipboard.writeText(pre.textContent);
                     copyBtn.innerHTML = '✓';
@@ -277,9 +293,17 @@ export class ChatView {
                     messageBubble.classList.add('prose', 'prose-slate', 'prose-sm');
                 }
                 
-                // Highlight code blocks
+                // Highlight code blocks and add language badges
                 messageBubble.querySelectorAll('pre code').forEach((block) => {
                     hljs.highlightElement(block);
+                    
+                    // Add language badge
+                    const language = block.className.replace('hljs language-', '').replace('hljs', '') || 'text';
+                    const pre = block.parentElement;
+                    const badge = document.createElement('div');
+                    badge.className = 'absolute top-2 right-2 text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded';
+                    badge.textContent = language;
+                    pre.appendChild(badge);
                 });
                 
                 // Add copy buttons to code blocks
@@ -291,7 +315,7 @@ export class ChatView {
                     
                     const copyBtn = document.createElement('button');
                     copyBtn.innerHTML = '📋';
-                    copyBtn.className = 'absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-gray-700 text-white px-2 py-1 rounded text-xs';
+                    copyBtn.className = 'absolute top-2 left-2 opacity-0 group-hover:opacity-100 bg-gray-700 text-white px-2 py-1 rounded text-xs transition-opacity';
                     copyBtn.onclick = () => {
                         navigator.clipboard.writeText(pre.textContent);
                         copyBtn.innerHTML = '✓';
@@ -315,12 +339,12 @@ export class ChatView {
     }
     
     _getMessageClasses(role) {
-        const baseClasses = 'p-3 rounded-lg mb-2 break-words';
+        const baseClasses = 'px-4 py-3 rounded-lg mb-2 break-words';
         
         if (role === 'User') {
             return `${baseClasses} bg-indigo-500 text-white ml-auto max-w-2xl`;
         } else {
-            return `${baseClasses} bg-gray-200 text-gray-800 mr-auto max-w-3xl`;
+            return `${baseClasses} bg-gray-50 text-gray-800 mr-auto max-w-3xl shadow-sm border border-gray-100`;
         }
     }
 

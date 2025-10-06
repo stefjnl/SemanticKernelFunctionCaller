@@ -34,6 +34,10 @@ public class ProviderSettingsValidator : IValidateOptions<ProviderSettings>
             errors.Add($"{name}: Invalid endpoint URI");
 
         if (config.Models == null || !config.Models.Any())
-            errors.Add($"{name}: At least one model must be configured");
-    }
-}
+                    errors.Add($"{name}: At least one model must be configured");
+                
+                // Optional: Validate system prompt length
+                if (!string.IsNullOrEmpty(config.SystemPrompt) && config.SystemPrompt.Length > 2000)
+                    errors.Add($"{name}: SystemPrompt exceeds maximum length of 2000 characters");
+            }
+        }

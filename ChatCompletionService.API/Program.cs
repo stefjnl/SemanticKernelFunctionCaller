@@ -29,6 +29,11 @@ builder.Services.AddOptions<ProviderSettings>()
 
 builder.Services.AddSingleton<IValidateOptions<ProviderSettings>, ProviderSettingsValidator>();
 
+// Register ChatSettings
+builder.Services.Configure<ChatSettings>(
+    builder.Configuration.GetSection("ChatSettings")
+);
+
 // Add services to the container.
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
