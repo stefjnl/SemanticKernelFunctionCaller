@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using ChatCompletionService.Application.DTOs;
 using ChatCompletionService.Application.Interfaces;
 using Microsoft.Extensions.Logging;
 using ChatCompletionService.Domain.Entities;
@@ -9,6 +8,11 @@ using ChatCompletionService.Infrastructure.Mappers;
 using Microsoft.Extensions.AI;
 using OpenAI;
 using System.ClientModel;
+using System.Diagnostics;
+using ProviderChatMessage = Microsoft.Extensions.AI.ChatMessage;
+using ProviderChatResponse = Microsoft.Extensions.AI.ChatResponse;
+using DomainChatMessage = ChatCompletionService.Domain.Entities.ChatMessage;
+using DomainChatResponse = ChatCompletionService.Domain.Entities.ChatResponse;
 
 namespace ChatCompletionService.Infrastructure.Providers;
 
@@ -34,16 +38,17 @@ public abstract class BaseChatProvider : IChatCompletionService
         _chatClient = null!;
     }
 
-    public virtual async Task<Domain.Entities.ChatResponse> SendMessageAsync(
-        ChatRequestDto request, CancellationToken cancellationToken = default)
+    public virtual async Task<DomainChatResponse> SendMessageAsync(
+        IEnumerable<DomainChatMessage> messages,
+        CancellationToken cancellationToken = default)
     {
-        ValidateRequest(request);
+        ArgumentNullException.ThrowIfNull(messages);
 
-        var providerMessages = request.Messages.Select(ModelConverter.ToProviderMessage).ToList();
+        var providerMessages = messages.Select(ModelConverter.ToProviderMessage).ToList();
         var response = await _chatClient.GetResponseAsync(providerMessages, cancellationToken: cancellationToken);
 
         var domainMessage = ModelConverter.ToDomainMessage(response.Messages.First());
-        return new Domain.Entities.ChatResponse
+        return new DomainChatResponse
         {
             Message = domainMessage,
             ModelUsed = _modelId,
@@ -51,12 +56,13 @@ public abstract class BaseChatProvider : IChatCompletionService
         };
     }
 
-    public virtual async IAsyncEnumerable<StreamingChatUpdate> StreamMessageAsync(
-        ChatRequestDto request, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public virtual async IAsyncEnumerable<string> StreamMessageAsync(
+        IEnumerable<DomainChatMessage> messages,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        ValidateRequest(request);
+        ArgumentNullException.ThrowIfNull(messages);
 
-        var providerMessages = request.Messages.Select(ModelConverter.ToProviderMessage).ToList();
+        var providerMessages = messages.Select(ModelConverter.ToProviderMessage).ToList();
         var streamingResponse = _chatClient.GetStreamingResponseAsync(providerMessages, cancellationToken: cancellationToken);
 
         await foreach (var update in streamingResponse.WithCancellation(cancellationToken))
@@ -64,11 +70,9 @@ public abstract class BaseChatProvider : IChatCompletionService
             var content = ExtractStreamingContent(update);
             if (!string.IsNullOrEmpty(content))
             {
-                yield return new StreamingChatUpdate { Content = content, IsFinal = false };
+                yield return content;
             }
         }
-
-        yield return new StreamingChatUpdate { Content = string.Empty, IsFinal = true };
     }
 
     public virtual ProviderMetadata GetMetadata()
@@ -86,12 +90,6 @@ public abstract class BaseChatProvider : IChatCompletionService
     {
         if (string.IsNullOrEmpty(apiKey))
             throw new ArgumentException("API key cannot be null or empty", nameof(apiKey));
-    }
-
-    protected static void ValidateRequest(ChatRequestDto request)
-    {
-        if (request?.Messages == null)
-            throw new ArgumentNullException(nameof(request.Messages));
     }
 
     protected static IChatClient CreateChatClient(string apiKey, string modelId, string endpoint)

@@ -1,4 +1,3 @@
-using ChatCompletionService.Application.DTOs;
 using ChatCompletionService.Domain.Entities;
 using ChatCompletionService.Domain.ValueObjects;
 
@@ -6,12 +5,12 @@ namespace ChatCompletionService.Application.Interfaces;
 
 public interface IChatCompletionService
 {
-    Task<Domain.Entities.ChatResponse> SendMessageAsync(
-        ChatRequestDto request, 
+    Task<ChatResponse> SendMessageAsync(
+        IEnumerable<ChatMessage> messages,
         CancellationToken cancellationToken = default);
         
-    IAsyncEnumerable<StreamingChatUpdate> StreamMessageAsync(
-        ChatRequestDto request, 
+    IAsyncEnumerable<string> StreamMessageAsync(
+        IEnumerable<ChatMessage> messages,
         CancellationToken cancellationToken = default);
         
     ProviderMetadata GetMetadata();

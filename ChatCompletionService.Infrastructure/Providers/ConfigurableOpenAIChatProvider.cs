@@ -1,4 +1,3 @@
-using ChatCompletionService.Application.DTOs;
 using ChatCompletionService.Application.Interfaces;
 using ChatCompletionService.Domain.Entities;
 using ChatCompletionService.Infrastructure.Mappers;
@@ -23,26 +22,5 @@ public class ConfigurableOpenAIChatProvider : BaseChatProvider
 
         // Using the static CreateChatClient method from the base class for consistency
         _chatClient = CreateChatClient(apiKey, modelId, endpoint);
-    }
-
-    // This method is now correctly overriding the base class method.
-    public override async IAsyncEnumerable<StreamingChatUpdate> StreamMessageAsync(
-        ChatRequestDto request, [EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        ValidateRequest(request);
-
-        var providerMessages = request.Messages.Select(ModelConverter.ToProviderMessage).ToList();
-        var streamingResponse = _chatClient.GetStreamingResponseAsync(providerMessages, cancellationToken: cancellationToken);
-
-        await foreach (var update in streamingResponse.WithCancellation(cancellationToken))
-        {
-            var content = ExtractStreamingContent(update);
-            if (!string.IsNullOrEmpty(content))
-            {
-                yield return new StreamingChatUpdate { Content = content, IsFinal = false };
-            }
-        }
-
-        yield return new StreamingChatUpdate { Content = string.Empty, IsFinal = true };
     }
 }

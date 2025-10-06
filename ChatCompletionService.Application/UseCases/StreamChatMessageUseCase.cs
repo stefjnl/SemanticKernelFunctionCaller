@@ -1,6 +1,7 @@
 using ChatCompletionService.Application.Interfaces;
 using ChatCompletionService.Application.DTOs;
 using ChatCompletionService.Domain.Enums;
+using ChatCompletionService.Domain.Entities;
 using System.Runtime.CompilerServices;
 
 namespace ChatCompletionService.Application.UseCases;
@@ -18,12 +19,22 @@ public class StreamChatMessageUseCase
         ChatRequestDto request,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
+        // Map DTO to domain models
+        var messages = request.Messages.Select(m => new ChatMessage
+        {
+            Role = m.Role,
+            Content = m.Content,
+            // Note: We're not setting Id and Timestamp as they're not in the DTO
+        }).ToList();
+
         var providerType = Enum.Parse<ProviderType>(request.ProviderId);
         var provider = _providerFactory.CreateProvider(providerType.ToString(), request.ModelId);
 
-        await foreach (var update in provider.StreamMessageAsync(request, cancellationToken))
+        await foreach (var content in provider.StreamMessageAsync(messages, cancellationToken))
         {
-            yield return update;
+            yield return new StreamingChatUpdate { Content = content, IsFinal = false };
         }
+        
+        yield return new StreamingChatUpdate { Content = string.Empty, IsFinal = true };
     }
 }

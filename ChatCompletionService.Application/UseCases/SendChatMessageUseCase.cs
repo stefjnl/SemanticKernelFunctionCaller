@@ -16,9 +16,18 @@ public class SendChatMessageUseCase
 
     public async Task<ChatResponseDto> ExecuteAsync(ChatRequestDto request)
     {
+        // Map DTO to domain models
+        var messages = request.Messages.Select(m => new ChatMessage
+        {
+            Role = m.Role,
+            Content = m.Content,
+            // Note: We're not setting Id and Timestamp as they're not in the DTO
+            // In a real implementation, we might want to generate these
+        }).ToList();
+
         var providerType = Enum.Parse<ProviderType>(request.ProviderId);
         var provider = _providerFactory.CreateProvider(providerType.ToString(), request.ModelId);
-        var response = await provider.SendMessageAsync(request);
+        var response = await provider.SendMessageAsync(messages);
         return MapToDto(response);
     }
 
