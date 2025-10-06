@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 
 namespace SemanticKernelFunctionCaller.Application.UseCases;
 
-public class StreamChatMessageUseCase
+public class StreamChatMessageUseCase : IStreamChatMessageUseCase
 {
     private readonly IProviderFactory _providerFactory;
 
@@ -34,7 +34,7 @@ public class StreamChatMessageUseCase
         {
             yield return new StreamingChatUpdate { Content = content, IsFinal = false };
         }
-        
+
         yield return new StreamingChatUpdate { Content = string.Empty, IsFinal = true };
     }
 }

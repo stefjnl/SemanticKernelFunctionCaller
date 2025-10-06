@@ -4,7 +4,7 @@ using SemanticKernelFunctionCaller.Domain.ValueObjects;
 
 namespace SemanticKernelFunctionCaller.Application.UseCases;
 
-public class GetAvailableProvidersUseCase
+public class GetAvailableProvidersUseCase : IGetAvailableProvidersUseCase
 {
     private readonly IProviderConfigurationReader _providerReader;
 

@@ -4,7 +4,7 @@ using SemanticKernelFunctionCaller.Domain.ValueObjects;
 
 namespace SemanticKernelFunctionCaller.Application.UseCases;
 
-public class GetProviderModelsUseCase
+public class GetProviderModelsUseCase : IGetProviderModelsUseCase
 {
     private readonly IModelCatalog _modelCatalog;
 
@@ -18,12 +18,12 @@ public class GetProviderModelsUseCase
         return _modelCatalog.GetModels(providerId).Select(MapToDto);
     }
 
-    private static ModelInfoDto MapToDto(ModelConfiguration configuration)
+    private static ModelInfoDto MapToDto(ModelConfiguration config)
     {
         return new ModelInfoDto
         {
-            Id = configuration.Id,
-            DisplayName = configuration.DisplayName
+            Id = config.Id,
+            DisplayName = config.DisplayName
         };
     }
 }

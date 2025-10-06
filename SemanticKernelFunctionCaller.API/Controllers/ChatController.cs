@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using SemanticKernelFunctionCaller.Application.DTOs;
-using SemanticKernelFunctionCaller.Application.UseCases;
+using SemanticKernelFunctionCaller.Application.Interfaces;
 using System.Text.Json;
 
 namespace SemanticKernelFunctionCaller.API.Controllers;
@@ -9,17 +9,17 @@ namespace SemanticKernelFunctionCaller.API.Controllers;
 [Route("api/[controller]")]
 public class ChatController : ControllerBase
 {
-    private readonly GetAvailableProvidersUseCase _getProvidersUseCase;
-    private readonly GetProviderModelsUseCase _getModelsUseCase;
-    private readonly SendChatMessageUseCase _sendMessageUseCase;
-    private readonly StreamChatMessageUseCase _streamMessageUseCase;
+    private readonly IGetAvailableProvidersUseCase _getProvidersUseCase;
+    private readonly IGetProviderModelsUseCase _getModelsUseCase;
+    private readonly ISendChatMessageUseCase _sendMessageUseCase;
+    private readonly IStreamChatMessageUseCase _streamMessageUseCase;
     private readonly ILogger<ChatController> _logger;
 
     public ChatController(
-        GetAvailableProvidersUseCase getProvidersUseCase,
-        GetProviderModelsUseCase getModelsUseCase,
-        SendChatMessageUseCase sendMessageUseCase,
-        StreamChatMessageUseCase streamMessageUseCase,
+        IGetAvailableProvidersUseCase getProvidersUseCase,
+        IGetProviderModelsUseCase getModelsUseCase,
+        ISendChatMessageUseCase sendMessageUseCase,
+        IStreamChatMessageUseCase streamMessageUseCase,
         ILogger<ChatController> logger)
     {
         _getProvidersUseCase = getProvidersUseCase;

@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SemanticKernelFunctionCalle
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SemanticKernelFunctionCaller.Application.Tests", "SemanticKernelFunctionCaller.Application.Tests\SemanticKernelFunctionCaller.Application.Tests.csproj", "{A7E5F321-8D94-4A5A-9C6D-4E1F7D8B4A2C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SemanticKernelFunctionCaller.API.Tests", "SemanticKernelFunctionCaller.API.Tests\SemanticKernelFunctionCaller.API.Tests.csproj", "{B8F6E452-9A85-4B2F-8D1E-3F8A9B2C5D7E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -95,6 +97,18 @@ Global
 		{A7E5F321-8D94-4A5A-9C6D-4E1F7D8B4A2C}.Release|Any CPU.Build.0 = Release|Any CPU
 		{A7E5F321-8D94-4A5A-9C6D-4E1F7D8B4A2C}.Release|x64.ActiveCfg = Release|Any CPU
 		{A7E5F321-8D94-4A5A-9C6D-4E1F7D8B4A2C}.Release|x64.Build.0 = Release|Any CPU
+		{B8F6E452-9A85-4B2F-8D1E-3F8A9B2C5D7E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B8F6E452-9A85-4B2F-8D1E-3F8A9B2C5D7E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B8F6E452-9A85-4B2F-8D1E-3F8A9B2C5D7E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{B8F6E452-9A85-4B2F-8D1E-3F8A9B2C5D7E}.Debug|x64.Build.0 = Debug|Any CPU
+		{B8F6E452-9A85-4B2F-8D1E-3F8A9B2C5D7E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{B8F6E452-9A85-4B2F-8D1E-3F8A9B2C5D7E}.Debug|x86.Build.0 = Debug|Any CPU
+		{B8F6E452-9A85-4B2F-8D1E-3F8A9B2C5D7E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B8F6E452-9A85-4B2F-8D1E-3F8A9B2C5D7E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B8F6E452-9A85-4B2F-8D1E-3F8A9B2C5D7E}.Release|x64.ActiveCfg = Release|Any CPU
+		{B8F6E452-9A85-4B2F-8D1E-3F8A9B2C5D7E}.Release|x64.Build.0 = Release|Any CPU
+		{B8F6E452-9A85-4B2F-8D1E-3F8A9B2C5D7E}.Release|x86.ActiveCfg = Release|Any CPU
+		{B8F6E452-9A85-4B2F-8D1E-3F8A9B2C5D7E}.Release|x86.Build.0 = Release|Any CPU
 		{A7E5F321-8D94-4A5A-9C6D-4E1F7D8B4A2C}.Release|x86.ActiveCfg = Release|Any CPU
 		{A7E5F321-8D94-4A5A-9C6D-4E1F7D8B4A2C}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection

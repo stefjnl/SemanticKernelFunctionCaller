@@ -5,7 +5,7 @@ using SemanticKernelFunctionCaller.Domain.Entities;
 
 namespace SemanticKernelFunctionCaller.Application.UseCases;
 
-public class SendChatMessageUseCase
+public class SendChatMessageUseCase : ISendChatMessageUseCase
 {
     private readonly IProviderFactory _providerFactory;
 
