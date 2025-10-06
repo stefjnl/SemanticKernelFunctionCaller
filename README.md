@@ -1,4 +1,4 @@
-# ChatCompletionService - Enterprise AI Chat Application
+# SemanticKernelFunctionCaller - Enterprise AI Chat Application
 
 This project is an enterprise-grade AI chat application built with .NET 9, Clean Architecture, and .NET Aspire. It provides a unified interface for interacting with multiple AI providers while maintaining a clean, scalable, and maintainable codebase.
 
@@ -14,7 +14,7 @@ graph TD
     end
 
     subgraph "Application Layer"
-        B[IChatCompletionService<br/>Use Cases]
+        B[ISemanticKernelFunctionCaller<br/>Use Cases]
         G[IProviderFactory<br/>DTOs]
     end
 
@@ -72,12 +72,12 @@ graph TD
 1.  **Clone the repository:**
     ```bash
     git clone <repository-url>
-    cd ChatCompletionService
+    cd SemanticKernelFunctionCaller
     ```
 
 2.  **Configure API Keys:**
     This project uses User Secrets to manage API keys.
-    -   Navigate to the API project directory: `cd ChatCompletionService.API`
+    -   Navigate to the API project directory: `cd SemanticKernelFunctionCaller.API`
     -   Initialize user secrets: `dotnet user-secrets init`
     -   Set your API keys:
         ```bash
@@ -87,7 +87,7 @@ graph TD
 
 ### Running the Application
 
-1.  Set the `ChatCompletionService.AppHost` project as the startup project.
+1.  Set the `SemanticKernelFunctionCaller.AppHost` project as the startup project.
 2.  Run the application (e.g., by pressing F5 in Visual Studio or using `dotnet run` in the `AppHost` directory).
 3.  The .NET Aspire dashboard will launch. Find the URL for the `apiservice` and navigate to it in your browser to use the application.
 

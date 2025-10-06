@@ -1,16 +1,16 @@
-# Technical Overview: ChatCompletionService-Gemini-2.5
+# Technical Overview: SemanticKernelFunctionCaller-Gemini-2.5
 
-Based on the analysis of the codebase, here is a detailed technical overview of the `ChatCompletionService-Gemini-2.5` application.
+Based on the analysis of the codebase, here is a detailed technical overview of the `SemanticKernelFunctionCaller-Gemini-2.5` application.
 
 ### **1. High-Level Architecture**
 
 The application follows a classic **N-Tier (or Clean/Onion) Architecture**, which promotes separation of concerns and maintainability. The solution is divided into several projects, each with a distinct responsibility:
 
-*   **`ChatCompletionService.Domain`**: The core of the application. It contains the fundamental business entities (like `ChatMessage`, `ChatResponse`), value objects, and enums. It has no dependencies on any other project in the solution.
-*   **`ChatCompletionService.Application`**: This layer defines the application's business logic and use cases. It contains interfaces for external-facing services (`IChatCompletionService`, `IProviderFactory`), Data Transfer Objects (DTOs) for moving data between layers, and the core application logic (Use Cases).
-*   **`ChatCompletionService.Infrastructure`**: This project implements the interfaces defined in the `Application` layer. It handles all external concerns, such as communicating with third-party APIs (like OpenRouter), managing configuration, and implementing data mappings.
-*   **`ChatCompletionService.API`**: This is the presentation layer, built as an ASP.NET Core Web API. It exposes RESTful endpoints, serves the frontend static files (HTML, JS), and handles incoming HTTP requests, delegating the actual work to the `Application` layer.
-*   **`ChatCompletionService.AppHost`**: This project appears to be a .NET Aspire host, designed to orchestrate and launch the other services, though its specific implementation details were not fully analyzed.
+*   **`SemanticKernelFunctionCaller.Domain`**: The core of the application. It contains the fundamental business entities (like `ChatMessage`, `ChatResponse`), value objects, and enums. It has no dependencies on any other project in the solution.
+*   **`SemanticKernelFunctionCaller.Application`**: This layer defines the application's business logic and use cases. It contains interfaces for external-facing services (`ISemanticKernelFunctionCaller`, `IProviderFactory`), Data Transfer Objects (DTOs) for moving data between layers, and the core application logic (Use Cases).
+*   **`SemanticKernelFunctionCaller.Infrastructure`**: This project implements the interfaces defined in the `Application` layer. It handles all external concerns, such as communicating with third-party APIs (like OpenRouter), managing configuration, and implementing data mappings.
+*   **`SemanticKernelFunctionCaller.API`**: This is the presentation layer, built as an ASP.NET Core Web API. It exposes RESTful endpoints, serves the frontend static files (HTML, JS), and handles incoming HTTP requests, delegating the actual work to the `Application` layer.
+*   **`SemanticKernelFunctionCaller.AppHost`**: This project appears to be a .NET Aspire host, designed to orchestrate and launch the other services, though its specific implementation details were not fully analyzed.
 
 ### **2. Detailed OpenRouter Communication Flow**
 
@@ -20,7 +20,7 @@ Here is the step-by-step journey of a chat message from the user's browser to th
 
 The user interacts with a simple web UI. When a message is sent, the `handleSendMessage` function in `app.js` is triggered. It packages the selected provider (`OpenRouter`), model, and the conversation history into a JSON object and sends it via a `fetch` request to the backend.
 
-*   **File:** `ChatCompletionService.API\wwwroot\js\app.js`
+*   **File:** `SemanticKernelFunctionCaller.API\wwwroot\js\app.js`
 *   **Endpoint:** `POST /api/chat/stream`
 *   **Payload:**
     ```json
@@ -38,7 +38,7 @@ The user interacts with a simple web UI. When a message is sent, the `handleSend
 
 The ASP.NET Core backend receives the request at the `StreamMessage` method in the `ChatController`. This method is responsible for orchestrating the call to the backend services and streaming the response back to the client.
 
-*   **File:** `ChatCompletionService.API\Controllers\ChatController.cs`
+*   **File:** `SemanticKernelFunctionCaller.API\Controllers\ChatController.cs`
 *   **Method:** `public async Task StreamMessage(ChatRequestDto request)`
 *   **Action:** It immediately calls `_providerFactory.CreateProvider(...)` to get an instance of the correct service for handling the request.
 
@@ -46,8 +46,8 @@ The ASP.NET Core backend receives the request at the `StreamMessage` method in t
 
 The `ChatProviderFactory` is responsible for creating the correct chat provider instance based on the `providerId` from the request.
 
-*   **File:** `ChatCompletionService.Infrastructure\Factories\ChatProviderFactory.cs`
-*   **Method:** `public IChatCompletionService CreateProvider(ProviderType provider, string modelId)`
+*   **File:** `SemanticKernelFunctionCaller.Infrastructure\Factories\ChatProviderFactory.cs`
+*   **Method:** `public ISemanticKernelFunctionCaller CreateProvider(ProviderType provider, string modelId)`
 *   **Action:**
     1.  It uses the `ProviderConfigurationManager` to get the specific configuration for "OpenRouter".
     2.  It then enters a `switch` statement and, for `ProviderType.OpenRouter`, it instantiates a new `OpenRouterChatProvider`, passing the **API Key** and the requested `modelId` into its constructor.
@@ -56,7 +56,7 @@ The `ChatProviderFactory` is responsible for creating the correct chat provider 
 
 The API Key and other settings are retrieved from the application's configuration.
 
-*   **Files:** `ChatCompletionService.Infrastructure\Configuration\ProviderConfigurationManager.cs`, `ChatCompletionService.Infrastructure\Configuration\ProviderSettings.cs`, and `appsettings.json` (or user secrets).
+*   **Files:** `SemanticKernelFunctionCaller.Infrastructure\Configuration\ProviderConfigurationManager.cs`, `SemanticKernelFunctionCaller.Infrastructure\Configuration\ProviderSettings.cs`, and `appsettings.json` (or user secrets).
 *   **Mechanism:**
     1.  The `ProviderConfigurationManager` is initialized with the application's `IConfiguration`.
     2.  It binds the `"Providers"` section of the configuration to the `ProviderSettings` class.
@@ -78,7 +78,7 @@ The API Key and other settings are retrieved from the application's configuratio
 
 This is where the actual communication with the OpenRouter API happens.
 
-*   **File:** `ChatCompletionService.Infrastructure\Providers\OpenRouterChatProvider.cs`
+*   **File:** `SemanticKernelFunctionCaller.Infrastructure\Providers\OpenRouterChatProvider.cs`
 *   **Constructor:** `public OpenRouterChatProvider(string apiKey, string modelId)`
     *   It receives the API key from the factory.
     *   It creates a `ChatClient` instance, providing it with the `modelId`, the `apiKey` (wrapped in an `ApiKeyCredential`), and a crucial `OpenAIClientOptions` object that sets the **Endpoint** to `https://openrouter.ai/api/v1/`.
@@ -95,9 +95,9 @@ The chunks yielded from the `OpenRouterChatProvider` are serialized to JSON by t
 
 The following NuGet packages are key to the application's functionality:
 
-*   **`ChatCompletionService.API`**
+*   **`SemanticKernelFunctionCaller.API`**
     *   `Microsoft.AspNetCore.OpenApi`, `Swashbuckle.AspNetCore`: For generating Swagger/OpenAPI documentation for the API.
-*   **`ChatCompletionService.Infrastructure`**
+*   **`SemanticKernelFunctionCaller.Infrastructure`**
     *   `OpenAI-DotNet`: This is the community-driven .NET library for interacting with OpenAI-compatible APIs, including OpenRouter. The `OpenRouterChatProvider` uses this library's `ChatClient` to make the API calls.
     *   `Microsoft.Extensions.Configuration.Binder`: Used to map configuration sections (like `appsettings.json`) to strongly-typed C# classes (like `ProviderSettings`).
     *   `Microsoft.Extensions.AI`: Provides common AI abstractions like `IChatClient`.
@@ -110,7 +110,7 @@ The following NuGet packages are key to the application's functionality:
 
 This application follows **Clean Architecture** principles with a clear separation of concerns across multiple layers:
 
-### **API Layer** (`ChatCompletionService.API`)
+### **API Layer** (`SemanticKernelFunctionCaller.API`)
 - **Framework**: ASP.NET Core Web API (.NET 8)
 - **Responsibilities**: HTTP request handling, static file serving, CORS configuration
 - **Key Components**:
@@ -118,15 +118,15 @@ This application follows **Clean Architecture** principles with a clear separati
   - Static file middleware serving vanilla JavaScript frontend
   - Swagger/OpenAPI documentation
 
-### **Application Layer** (`ChatCompletionService.Application`)
+### **Application Layer** (`SemanticKernelFunctionCaller.Application`)
 - **Framework**: Class library with business logic interfaces and DTOs
 - **Responsibilities**: Use cases, DTOs, and service interfaces
 - **Key Components**:
-  - `IChatCompletionService` - Core chat completion interface
+  - `ISemanticKernelFunctionCaller` - Core chat completion interface
   - `IProviderFactory` - Provider instantiation interface
   - DTOs: `ChatRequestDto`, `ChatResponseDto`, `StreamingChatUpdate`
 
-### **Domain Layer** (`ChatCompletionService.Domain`)
+### **Domain Layer** (`SemanticKernelFunctionCaller.Domain`)
 - **Framework**: Pure domain models with no external dependencies
 - **Responsibilities**: Business entities, value objects, and core business rules
 - **Key Components**:
@@ -134,7 +134,7 @@ This application follows **Clean Architecture** principles with a clear separati
   - `ChatRole`, `ProviderType`, `MessageType` enums
   - `ModelConfiguration`, `ProviderMetadata` value objects
 
-### **Infrastructure Layer** (`ChatCompletionService.Infrastructure`)
+### **Infrastructure Layer** (`SemanticKernelFunctionCaller.Infrastructure`)
 - **Framework**: Implementation layer with external dependencies
 - **Responsibilities**: Provider implementations, configuration management, data mapping
 - **Key Components**:
@@ -160,7 +160,7 @@ public class ProviderConfig
 **Configuration Loading Path**: `Providers:OpenRouter:ApiKey`, `Providers:OpenRouter:Endpoint`, `Providers:OpenRouter:Models`
 
 ### **OpenRouter Provider Implementation**
-The `OpenRouterChatProvider` class implements `IChatCompletionService` with these specifics:
+The `OpenRouterChatProvider` class implements `ISemanticKernelFunctionCaller` with these specifics:
 
 **Constructor Configuration**:
 ```csharp
@@ -225,7 +225,7 @@ public async Task StreamMessage(ChatRequestDto request)
 
 3. **Provider Factory** (`ChatProviderFactory.cs`):
 ```csharp
-public IChatCompletionService CreateProvider(ProviderType provider, string modelId)
+public ISemanticKernelFunctionCaller CreateProvider(ProviderType provider, string modelId)
 {
     return provider switch
     {
@@ -315,3 +315,4 @@ public static DomainChatMessage ToDomainMessage(ProviderChatMessage providerMess
 6. **Data Transformation**: `ModelConverter` handles bidirectional conversion between domain models and provider formats
 
 The application demonstrates a well-structured, extensible architecture that cleanly separates concerns while providing a unified interface for multiple AI providers through the OpenRouter gateway.
+
