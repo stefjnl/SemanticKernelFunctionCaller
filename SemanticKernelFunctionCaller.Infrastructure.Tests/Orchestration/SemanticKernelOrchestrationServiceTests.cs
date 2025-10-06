@@ -72,7 +72,7 @@ public class SemanticKernelOrchestrationServiceTests
         var templateRequest = new PromptTemplateDto
         {
             TemplateName = "TestTemplate",
-            Variables = new Dictionary<string, object> { { "variable", "test value" } }
+            Variables = new Dictionary<string, string> { { "variable", "test value" } }
         };
 
         // Act
