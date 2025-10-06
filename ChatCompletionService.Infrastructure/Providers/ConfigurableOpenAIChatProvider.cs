@@ -15,8 +15,14 @@ public class ConfigurableOpenAIChatProvider : BaseChatProvider
         string modelId,
         string endpoint,
         string providerName,
-        ILogger logger) : base(apiKey, modelId, endpoint, providerName, logger)
+        ILogger logger,
+        Func<string, string, string, IChatClient> chatClientFactory)
+        : base(providerName, logger, modelId)
     {
-        // Base class handles all common initialization
+        ArgumentNullException.ThrowIfNull(apiKey);
+        ArgumentNullException.ThrowIfNull(endpoint);
+        ArgumentNullException.ThrowIfNull(chatClientFactory);
+
+        InitializeChatClient(chatClientFactory, apiKey, modelId, endpoint);
     }
 }

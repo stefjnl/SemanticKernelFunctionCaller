@@ -24,35 +24,6 @@ public abstract class BaseChatProvider : IChatCompletionService
     protected ILogger _logger;
 
     /// <summary>
-    /// Initializes a new instance of the BaseChatProvider class using a ProviderConfig.
-    /// </summary>
-    /// <param name="config">The provider configuration containing API key and endpoint.</param>
-    /// <param name="modelId">The model identifier to use.</param>
-    /// <param name="providerName">The name of the provider.</param>
-    /// <param name="logger">The logger instance.</param>
-    protected BaseChatProvider(ProviderConfig config, string modelId, string providerName, ILogger logger) : this(providerName, logger, modelId)
-    {
-        ArgumentNullException.ThrowIfNull(config);
-        ValidateApiKey(config.ApiKey);
-        _chatClient = CreateChatClient(config.ApiKey, modelId, config.Endpoint);
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the BaseChatProvider class with consolidated parameters.
-    /// </summary>
-    /// <param name="apiKey">The API key for authentication.</param>
-    /// <param name="modelId">The model identifier to use.</param>
-    /// <param name="endpoint">The API endpoint URL.</param>
-    /// <param name="providerName">The name of the provider.</param>
-    /// <param name="logger">The logger instance.</param>
-    protected BaseChatProvider(string apiKey, string modelId, string endpoint, string providerName, ILogger logger) : this(providerName, logger, modelId)
-    {
-        ValidateApiKey(apiKey);
-        ArgumentException.ThrowIfNullOrEmpty(endpoint, nameof(endpoint));
-        _chatClient = CreateChatClient(apiKey, modelId, endpoint);
-    }
-    
-    /// <summary>
     /// Initializes a new instance of the BaseChatProvider class.
     /// </summary>
     /// <param name="providerName">The name of the provider.</param>
@@ -64,6 +35,19 @@ public abstract class BaseChatProvider : IChatCompletionService
         _logger = logger;
         _modelId = modelId;
         _chatClient = null!;
+    }
+
+    /// <summary>
+    /// Initialize the chat client using the injected factory.
+    /// </summary>
+    protected void InitializeChatClient(
+        Func<string, string, string, IChatClient> chatClientFactory,
+        string apiKey,
+        string modelId,
+        string endpoint)
+    {
+        ValidateApiKey(apiKey);
+        _chatClient = chatClientFactory(apiKey, modelId, endpoint);
     }
 
     /// <summary>
@@ -146,22 +130,4 @@ public abstract class BaseChatProvider : IChatCompletionService
             throw new ArgumentException("API key cannot be null or empty", nameof(apiKey));
     }
 
-    /// <summary>
-    /// Creates a chat client instance with the specified configuration.
-    /// </summary>
-    /// <param name="apiKey">The API key for authentication.</param>
-    /// <param name="modelId">The model identifier to use.</param>
-    /// <param name="endpoint">The API endpoint URL.</param>
-    /// <returns>A configured chat client instance.</returns>
-    protected static IChatClient CreateChatClient(string apiKey, string modelId, string endpoint)
-    {
-        var chatClient = new OpenAI.Chat.ChatClient(
-            modelId,
-            new ApiKeyCredential(apiKey),
-            new OpenAIClientOptions { Endpoint = new Uri(endpoint) });
-
-        return chatClient.AsIChatClient().AsBuilder()
-            .UseOpenTelemetry()
-            .Build();
-    }
 }

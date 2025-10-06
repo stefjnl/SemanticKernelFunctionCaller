@@ -2,6 +2,7 @@ using ChatCompletionService.Application.Interfaces;
 using ChatCompletionService.Domain.Enums;
 using ChatCompletionService.Infrastructure.Configuration;
 using ChatCompletionService.Infrastructure.Providers;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -11,12 +12,19 @@ public class ChatProviderFactory : IProviderFactory
 {
     private readonly ILogger<ChatProviderFactory> _logger;
     private readonly IOptions<ProviderSettings> _providerSettings;
+    private readonly Func<string, string, string, IChatClient> _chatClientFactory;
     private readonly Dictionary<ProviderType, Func<string, IChatCompletionService>> _providerFactories;
 
-    public ChatProviderFactory(IOptions<ProviderSettings> providerSettings, ILogger<ChatProviderFactory> logger, ILoggerFactory loggerFactory)
+    public ChatProviderFactory(
+        IOptions<ProviderSettings> providerSettings,
+        ILogger<ChatProviderFactory> logger,
+        ILoggerFactory loggerFactory,
+        Func<string, string, string, IChatClient> chatClientFactory)
     {
         _logger = logger;
         _providerSettings = providerSettings;
+        _chatClientFactory = chatClientFactory;
+        
         var configurableLogger = loggerFactory.CreateLogger<ConfigurableOpenAIChatProvider>();
 
         _providerFactories = new Dictionary<ProviderType, Func<string, IChatCompletionService>>
@@ -25,14 +33,26 @@ public class ChatProviderFactory : IProviderFactory
                 ProviderType.OpenRouter, (modelId) =>
                 {
                     var config = providerSettings.Value.OpenRouter;
-                    return new ConfigurableOpenAIChatProvider(config.ApiKey, modelId, config.Endpoint, "OpenRouter", configurableLogger);
+                    return new ConfigurableOpenAIChatProvider(
+                        config.ApiKey,
+                        modelId,
+                        config.Endpoint,
+                        "OpenRouter",
+                        configurableLogger,
+                        _chatClientFactory);
                 }
             },
             {
                 ProviderType.NanoGPT, (modelId) =>
                 {
                     var config = providerSettings.Value.NanoGPT;
-                    return new ConfigurableOpenAIChatProvider(config.ApiKey, modelId, config.Endpoint, "NanoGpt", configurableLogger);
+                    return new ConfigurableOpenAIChatProvider(
+                        config.ApiKey,
+                        modelId,
+                        config.Endpoint,
+                        "NanoGpt",
+                        configurableLogger,
+                        _chatClientFactory);
                 }
             }
         };

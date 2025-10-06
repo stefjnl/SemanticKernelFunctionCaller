@@ -16,37 +16,28 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        // Configure ProviderSettings from appsettings.json
         services.Configure<ProviderSettings>(configuration.GetSection("Providers"));
-
-        // Register the new services
+        
+        // Register core services
         services.AddSingleton<IProviderConfigurationReader, ProviderConfigurationReader>();
         services.AddSingleton<IModelCatalog, ModelCatalog>();
         services.AddSingleton<IProviderFactory, ChatProviderFactory>();
-
-        // Add a default ChatClient using OpenRouter for now.
-        // This can be expanded to support more clients dynamically.
-        services.AddHttpClient();
-        services.AddChatClient(serviceProvider =>
+        
+        // Configure IChatClient factory with telemetry
+        services.AddSingleton<Func<string, string, string, IChatClient>>(serviceProvider =>
         {
-            var options = serviceProvider.GetRequiredService<IOptions<ProviderSettings>>().Value;
-            var openRouterSettings = options.OpenRouter;
-
-            if (openRouterSettings == null)
+            return (apiKey, modelId, endpoint) =>
             {
-                throw new InvalidOperationException("OpenRouter settings are not configured.");
-            }
+                var chatClient = new OpenAI.Chat.ChatClient(
+                    modelId,
+                    new ApiKeyCredential(apiKey),
+                    new OpenAIClientOptions { Endpoint = new Uri(endpoint) });
 
-            var chatClient = new OpenAI.Chat.ChatClient(
-                openRouterSettings.Models.FirstOrDefault()?.Id ?? "default-model",
-                new ApiKeyCredential(openRouterSettings.ApiKey),
-                new OpenAIClientOptions { Endpoint = new Uri(openRouterSettings.Endpoint) });
-
-            return chatClient.AsIChatClient().AsBuilder()
-                .UseOpenTelemetry()
-                .Build(serviceProvider);
+                return chatClient.AsIChatClient().AsBuilder()
+                    .UseOpenTelemetry()
+                    .Build();
+            };
         });
-
 
         return services;
     }
