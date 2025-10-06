@@ -10,6 +10,8 @@ export class ChatViewModel {
         this.model = new ChatModel();
         this.apiService = new ChatApiService();
         this._listeners = [];
+        this._useTools = false;
+        this._plugins = [];
     }
 
     // Model state access
@@ -33,6 +35,18 @@ export class ChatViewModel {
         return this.model.canSendMessage();
     }
 
+    get useTools() {
+        return this._useTools;
+    }
+
+    set useTools(value) {
+        this._useTools = Boolean(value);
+    }
+
+    get plugins() {
+        return this._plugins;
+    }
+
     // Provider and Model management
     async loadProviders() {
         try {
@@ -54,6 +68,19 @@ export class ChatViewModel {
         } catch (error) {
             this._notifyListeners({ type: 'error', error: error.message });
             throw error;
+        }
+    }
+
+    async loadPlugins() {
+        try {
+            const plugins = await this.apiService.fetchPlugins();
+            this._plugins = plugins;
+            this._notifyListeners({ type: 'pluginsLoaded', plugins });
+            return plugins;
+        } catch (error) {
+            console.error('Failed to load plugins:', error);
+            // Don't throw error, just log it - plugins are optional
+            return [];
         }
     }
 
@@ -93,13 +120,24 @@ export class ChatViewModel {
                 this.selectedProvider,
                 this.selectedModel,
                 messages,
-                abortController.signal
+                abortController.signal,
+                this._useTools
             );
 
             let fullResponse = '';
             let assistantMessage = null;
 
             for await (const update of streamingGenerator) {
+                // Handle tool invocation messages
+                if (update.type === 'tool_call') {
+                    this._notifyListeners({
+                        type: 'toolInvocation',
+                        functionName: update.functionName,
+                        content: update.content
+                    });
+                    continue;
+                }
+
                 // Handle both Content/Content and content (backend sends PascalCase)
                 const content = update.Content || update.content || '';
                 const isFinal = update.IsFinal !== undefined ? update.IsFinal : update.isFinal;
@@ -211,7 +249,9 @@ export class ChatViewModel {
             selectedProvider: this.selectedProvider,
             selectedModel: this.selectedModel,
             isLoading: this.isLoading,
-            canSendMessage: this.canSendMessage
+            canSendMessage: this.canSendMessage,
+            useTools: this.useTools,
+            plugins: this.plugins
         };
     }
 }

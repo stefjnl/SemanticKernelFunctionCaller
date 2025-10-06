@@ -6,10 +6,12 @@ export class ChatView {
     constructor() {
         this.providerSelect = document.getElementById('provider-select');
         this.modelSelect = document.getElementById('model-select');
+        this.useToolsCheckbox = document.getElementById('use-tools');
         this.chatWindow = document.getElementById('chat-window');
         this.messageInput = document.getElementById('message-input');
         this.sendButton = document.getElementById('send-button');
         this.clearButton = document.getElementById('clear-button');
+        this.pluginsContainer = document.getElementById('plugins-container');
 
         this.messageElements = new Map(); // Track DOM elements for messages
     }
@@ -192,6 +194,65 @@ export class ChatView {
         this._scrollToBottom();
     }
 
+    // Tool invocation display
+    showToolInvocation(functionName, content) {
+        const toolElement = document.createElement('div');
+        toolElement.className = 'p-2 mb-2 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg text-sm';
+        toolElement.innerHTML = `<span class="font-medium">🔧 ${functionName}</span>: ${content}`;
+        
+        this.chatWindow.appendChild(toolElement);
+        this._scrollToBottom();
+        
+        // Auto-remove after 3 seconds
+        setTimeout(() => {
+            if (toolElement.parentNode) {
+                toolElement.parentNode.removeChild(toolElement);
+            }
+        }, 3000);
+    }
+
+    // Plugin display
+    renderPlugins(plugins) {
+        if (!this.pluginsContainer) return;
+
+        this.pluginsContainer.innerHTML = '';
+
+        if (plugins.length === 0) {
+            this.pluginsContainer.innerHTML = '<p class="text-sm text-gray-500">No plugins available</p>';
+            return;
+        }
+
+        const pluginsList = document.createElement('div');
+        pluginsList.className = 'space-y-2';
+
+        plugins.forEach(plugin => {
+            const pluginElement = document.createElement('div');
+            pluginElement.className = 'p-2 bg-gray-50 rounded border border-gray-200';
+            
+            const pluginName = document.createElement('div');
+            pluginName.className = 'font-medium text-sm text-gray-800';
+            pluginName.textContent = `${plugin.plugin || plugin.Plugin}.${plugin.function || plugin.Function}`;
+            
+            const pluginDesc = document.createElement('div');
+            pluginDesc.className = 'text-xs text-gray-600 mt-1';
+            pluginDesc.textContent = plugin.description || plugin.Description || 'No description available';
+            
+            if (plugin.Parameters && plugin.Parameters.length > 0) {
+                const paramsElement = document.createElement('div');
+                paramsElement.className = 'text-xs text-gray-500 mt-1';
+                const params = plugin.Parameters.map(p => p.Name || p.name).join(', ');
+                paramsElement.textContent = `Parameters: ${params}`;
+                pluginElement.appendChild(paramsElement);
+            }
+            
+            pluginElement.appendChild(pluginName);
+            pluginElement.appendChild(pluginDesc);
+            pluginsList.appendChild(pluginElement);
+        });
+
+        this.pluginsContainer.appendChild(pluginsList);
+    }
+
     // Event Binding
     bindProviderChange(handler) {
         this.providerSelect.addEventListener('change', (e) => {
@@ -225,6 +286,12 @@ export class ChatView {
 
     bindClearConversation(handler) {
         this.clearButton.addEventListener('click', handler);
+    }
+
+    bindToolsToggle(handler) {
+        this.useToolsCheckbox.addEventListener('change', (e) => {
+            handler(e.target.checked);
+        });
     }
 
     // Private helper methods

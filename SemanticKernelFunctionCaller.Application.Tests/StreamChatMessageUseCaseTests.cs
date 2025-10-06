@@ -156,6 +156,7 @@ public class StreamChatMessageUseCaseTests
 
     private static async IAsyncEnumerable<string> CreateAsyncEnumerable(IEnumerable<string> content)
     {
+        await Task.CompletedTask;
         foreach (var item in content)
         {
             yield return item;

@@ -31,6 +31,7 @@ public class ChatControllerTests
         _controller = new ChatController(
             _mockSendMessageUseCase.Object,
             _mockStreamMessageUseCase.Object,
+            new Mock<Microsoft.SemanticKernel.Kernel>().Object,
             NullLogger<ChatController>.Instance);
     }
 
@@ -138,7 +139,7 @@ public class ChatControllerTests
         {
             ProviderId = "OpenRouter",
             ModelId = "gpt-3.5-turbo",
-            Messages = null
+            Messages = null!
         };
 
         var expectedResponse = new ChatResponseDto
@@ -360,6 +361,7 @@ public class ChatControllerTests
 
     private static async IAsyncEnumerable<T> CreateAsyncEnumerable<T>(IEnumerable<T> items)
     {
+        await Task.CompletedTask;
         foreach (var item in items)
         {
             yield return item;

@@ -1,7 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using SemanticKernelFunctionCaller.Application.DTOs;
 using SemanticKernelFunctionCaller.Application.Interfaces;
+using SemanticKernelFunctionCaller.Domain.Enums;
 using System.Text.Json;
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace SemanticKernelFunctionCaller.API.Controllers;
 
@@ -11,11 +15,13 @@ public class ChatController : ControllerBase
 {
     private readonly ISendChatMessageUseCase _sendMessageUseCase;
     private readonly IStreamChatMessageUseCase _streamMessageUseCase;
+    private readonly Kernel _kernel;
     private readonly ILogger<ChatController> _logger;
 
     public ChatController(
         ISendChatMessageUseCase sendMessageUseCase,
         IStreamChatMessageUseCase streamMessageUseCase,
+        Kernel kernel,
         ILogger<ChatController> logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -23,6 +29,7 @@ public class ChatController : ControllerBase
         
         _sendMessageUseCase = sendMessageUseCase ?? throw new ArgumentNullException(nameof(sendMessageUseCase));
         _streamMessageUseCase = streamMessageUseCase ?? throw new ArgumentNullException(nameof(streamMessageUseCase));
+        _kernel = kernel ?? throw new ArgumentNullException(nameof(kernel));
         
         _logger.LogInformation("ChatController constructor - All dependencies injected successfully");
     }
@@ -67,6 +74,107 @@ public class ChatController : ControllerBase
             var jsonError = JsonSerializer.Serialize(new { error = $"An error occurred: {ex.Message}" });
             await Response.WriteAsync($"data: {jsonError}\n\n");
             await Response.Body.FlushAsync();
+        }
+    }
+
+    [HttpPost("stream-with-tools")]
+    public async Task StreamWithTools(
+        [FromBody] ChatRequestDto request)
+    {
+        Response.ContentType = "text/event-stream";
+        Response.Headers.Append("Cache-Control", "no-cache");
+        Response.Headers.Append("Connection", "keep-alive");
+
+        try
+        {
+            _logger.LogInformation("Starting stream-with-tools request");
+
+            // Convert request messages to ChatHistory
+            var chatHistory = new ChatHistory();
+            foreach (var msg in request.Messages)
+            {
+                var role = msg.Role == ChatRole.User
+                    ? AuthorRole.User
+                    : AuthorRole.Assistant;
+                chatHistory.Add(new ChatMessageContent(role, msg.Content));
+            }
+
+            // Configure execution settings for tool calling
+            var settings = new OpenAIPromptExecutionSettings
+            {
+                ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions
+            };
+
+            // Stream the response with tool calling
+            await foreach (var update in _kernel.GetRequiredService<IChatCompletionService>().GetStreamingChatMessageContentsAsync(
+                chatHistory,
+                settings,
+                _kernel,
+                cancellationToken: HttpContext.RequestAborted))
+            {
+                // Show tool invocation in the stream
+                if (update.Role == AuthorRole.Tool && update.Content != null)
+                {
+                    _logger.LogInformation("Tool invocation: {FunctionName}", update.Content);
+                    
+                    var toolJson = JsonSerializer.Serialize(new
+                    {
+                        type = "tool_call",
+                        functionName = update.Content,
+                        content = $"🔧 Calling {update.Content}..."
+                    });
+                    await Response.WriteAsync($"data: {toolJson}\n\n");
+                    await Response.Body.FlushAsync();
+                }
+                else if (!string.IsNullOrEmpty(update.Content))
+                {
+                    var json = JsonSerializer.Serialize(new { content = update.Content });
+                    await Response.WriteAsync($"data: {json}\n\n");
+                    await Response.Body.FlushAsync();
+                }
+            }
+
+            _logger.LogInformation("Completed stream-with-tools request successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred during stream-with-tools.");
+            var jsonError = JsonSerializer.Serialize(new { error = $"An error occurred: {ex.Message}" });
+            await Response.WriteAsync($"data: {jsonError}\n\n");
+            await Response.Body.FlushAsync();
+        }
+    }
+
+    [HttpGet("plugins")]
+    public IActionResult GetAvailablePlugins()
+    {
+        try
+        {
+            _logger.LogInformation("Retrieving available plugins");
+            
+            var plugins = _kernel.Plugins
+                .SelectMany(p => p.Select(f => new
+                {
+                    Plugin = p.Name,
+                    Function = f.Name,
+                    Description = f.Description,
+                    Parameters = f.Metadata.Parameters.Select(param => new
+                    {
+                        Name = param.Name,
+                        Description = param.Description,
+                        Type = param.ParameterType?.Name ?? "Unknown",
+                        IsRequired = param.IsRequired
+                    })
+                }))
+                .ToList();
+
+            _logger.LogInformation("Found {Count} plugin functions", plugins.Count);
+            return Ok(plugins);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while retrieving plugins.");
+            return StatusCode(500, $"An error occurred: {ex.Message}");
         }
     }
 }
