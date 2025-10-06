@@ -125,6 +125,10 @@ document.addEventListener('DOMContentLoaded', () => {
         view.bindClearConversation(() => {
             viewModel.clearConversation();
         });
+
+        view.bindToolsToggle((useTools) => {
+            viewModel.useTools = useTools;
+        });
     }
 
     /**

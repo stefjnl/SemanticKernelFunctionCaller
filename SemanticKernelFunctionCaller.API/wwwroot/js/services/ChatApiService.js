@@ -99,9 +99,10 @@ export class ChatApiService {
      * @param {string} modelId - The model identifier
      * @param {Array} messages - Array of message objects
      * @param {AbortSignal} signal - Optional abort signal for cancellation
+     * @param {boolean} useTools - Whether to use tools (Semantic Kernel)
      * @returns {AsyncGenerator} Async generator yielding streaming updates
      */
-    async *streamChatMessage(providerId, modelId, messages, signal = null) {
+    async *streamChatMessage(providerId, modelId, messages, signal = null, useTools = false) {
         if (!providerId || !modelId) {
             throw new Error('Provider ID and Model ID are required');
         }
@@ -110,17 +111,20 @@ export class ChatApiService {
             throw new Error('Messages array cannot be empty');
         }
 
+        const endpoint = useTools ? `${this.baseUrl}/stream-with-tools` : `${this.baseUrl}/stream`;
+        const requestBody = {
+            providerId: providerId,
+            modelId: modelId,
+            messages: messages
+        };
+
         try {
-            const response = await fetch(`${this.baseUrl}/stream`, {
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    providerId: providerId,
-                    modelId: modelId,
-                    messages: messages
-                }),
+                body: JSON.stringify(requestBody),
                 signal: signal
             });
 

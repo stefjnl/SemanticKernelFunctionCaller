@@ -6,6 +6,7 @@ export class ChatView {
     constructor() {
         this.providerSelect = document.getElementById('provider-select');
         this.modelSelect = document.getElementById('model-select');
+        this.useToolsCheckbox = document.getElementById('use-tools');
         this.chatWindow = document.getElementById('chat-window');
         this.messageInput = document.getElementById('message-input');
         this.sendButton = document.getElementById('send-button');
@@ -225,6 +226,12 @@ export class ChatView {
 
     bindClearConversation(handler) {
         this.clearButton.addEventListener('click', handler);
+    }
+
+    bindToolsToggle(handler) {
+        this.useToolsCheckbox.addEventListener('change', (e) => {
+            handler(e.target.checked);
+        });
     }
 
     // Private helper methods

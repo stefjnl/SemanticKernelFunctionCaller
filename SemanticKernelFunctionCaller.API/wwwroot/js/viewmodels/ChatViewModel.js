@@ -10,6 +10,7 @@ export class ChatViewModel {
         this.model = new ChatModel();
         this.apiService = new ChatApiService();
         this._listeners = [];
+        this._useTools = false;
     }
 
     // Model state access
@@ -31,6 +32,14 @@ export class ChatViewModel {
 
     get canSendMessage() {
         return this.model.canSendMessage();
+    }
+
+    get useTools() {
+        return this._useTools;
+    }
+
+    set useTools(value) {
+        this._useTools = Boolean(value);
     }
 
     // Provider and Model management
@@ -93,7 +102,8 @@ export class ChatViewModel {
                 this.selectedProvider,
                 this.selectedModel,
                 messages,
-                abortController.signal
+                abortController.signal,
+                this._useTools
             );
 
             let fullResponse = '';
@@ -211,7 +221,8 @@ export class ChatViewModel {
             selectedProvider: this.selectedProvider,
             selectedModel: this.selectedModel,
             isLoading: this.isLoading,
-            canSendMessage: this.canSendMessage
+            canSendMessage: this.canSendMessage,
+            useTools: this.useTools
         };
     }
 }
