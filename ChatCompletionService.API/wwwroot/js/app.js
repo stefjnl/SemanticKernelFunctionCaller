@@ -46,11 +46,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             case 'messageSent':
                 view.renderMessage(event.message);
+                view.showTypingIndicator();
                 view.clearMessageInput();
                 view.setLoading(true);
                 break;
 
             case 'streamingStarted':
+                view.hideTypingIndicator();
                 view.renderMessage(event.message);
                 break;
 
@@ -77,6 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
 
             case 'requestAborted':
+                view.hideTypingIndicator();
                 view.setLoading(false);
                 break;
 

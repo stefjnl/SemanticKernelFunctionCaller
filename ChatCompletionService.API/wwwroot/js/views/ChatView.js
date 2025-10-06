@@ -308,19 +308,19 @@ export class ChatView {
 
     _getMessageContainerClasses(role) {
         if (role === 'User') {
-            return 'flex justify-end mb-2';
+            return 'flex justify-end';
         } else {
-            return 'flex justify-start mb-2';
+            return 'flex justify-start';
         }
     }
     
     _getMessageClasses(role) {
-        const baseClasses = 'p-3 rounded-lg break-words max-w-xs sm:max-w-md md:max-w-lg lg:max-w-xl';
-
+        const baseClasses = 'p-3 rounded-lg mb-2 break-words';
+        
         if (role === 'User') {
-            return `${baseClasses} bg-indigo-500 text-white`;
+            return `${baseClasses} bg-indigo-500 text-white ml-auto max-w-2xl`;
         } else {
-            return `${baseClasses} bg-gray-200 text-gray-800`;
+            return `${baseClasses} bg-gray-200 text-gray-800 mr-auto max-w-3xl`;
         }
     }
 
@@ -343,6 +343,21 @@ export class ChatView {
 
     _scrollToBottom() {
         this.chatWindow.scrollTop = this.chatWindow.scrollHeight;
+    }
+
+    // Typing indicator methods
+    showTypingIndicator() {
+        const indicator = document.createElement('div');
+        indicator.id = 'typing-indicator';
+        indicator.className = 'p-3 rounded-lg mb-2 bg-gray-200 max-w-xs mr-auto';
+        indicator.innerHTML = '<span class="flex space-x-1"><span class="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></span><span class="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style="animation-delay: 0.1s"></span><span class="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></span></span>';
+        this.chatWindow.appendChild(indicator);
+        this._scrollToBottom();
+    }
+
+    hideTypingIndicator() {
+        const indicator = document.getElementById('typing-indicator');
+        if (indicator) indicator.remove();
     }
 
     // Accessibility helpers
