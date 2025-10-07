@@ -71,6 +71,7 @@ builder.Services.PostConfigure<SemanticKernelSettings>(settings =>
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    options.JsonSerializerOptions.PropertyNamingPolicy = null; // Use property names as defined in DTO
 });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -83,6 +84,8 @@ builder.Services.AddScoped<IGetAvailableProvidersUseCase, GetAvailableProvidersU
 builder.Services.AddScoped<IGetProviderModelsUseCase, GetProviderModelsUseCase>();
 builder.Services.AddScoped<ISendChatMessageUseCase, SendChatMessageUseCase>();
 builder.Services.AddScoped<IStreamChatMessageUseCase, StreamChatMessageUseCase>();
+builder.Services.AddScoped<IStreamWithToolsUseCase, StreamWithToolsUseCase>();
+builder.Services.AddScoped<IGetAvailablePluginsUseCase, GetAvailablePluginsUseCase>();
 
 // Register configuration manager
 builder.Services.AddSingleton<IProviderConfigurationManager, ProviderConfigurationManager>();

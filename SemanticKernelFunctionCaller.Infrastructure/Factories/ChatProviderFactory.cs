@@ -1,10 +1,10 @@
+using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using SemanticKernelFunctionCaller.Application.Interfaces;
 using SemanticKernelFunctionCaller.Domain.Enums;
 using SemanticKernelFunctionCaller.Infrastructure.Configuration;
 using SemanticKernelFunctionCaller.Infrastructure.Providers;
-using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace SemanticKernelFunctionCaller.Infrastructure.Factories;
 
@@ -14,18 +14,18 @@ public class ChatProviderFactory : IProviderFactory
     private readonly IOptions<ProviderSettings> _providerSettings;
     private readonly Func<string, string, string, IChatClient> _chatClientFactory;
         private readonly Dictionary<ProviderType, Func<string, ISemanticKernelFunctionCaller>> _providerFactories;
-        private readonly IOptions<ChatSettings> _chatSettings;  // Add this
+        private readonly IOptions<ChatSettings> _chatSettings;
     
         public ChatProviderFactory(
             IOptions<ProviderSettings> providerSettings,
             ILogger<ChatProviderFactory> logger,
             ILoggerFactory loggerFactory,
             Func<string, string, string, IChatClient> chatClientFactory,
-            IOptions<ChatSettings> chatSettings)  // Add this
+            IOptions<ChatSettings> chatSettings)
         {
             _logger = logger;
             _providerSettings = providerSettings;
-            _chatSettings = chatSettings;  // Store this
+            _chatSettings = chatSettings;
             _chatClientFactory = chatClientFactory;
             
             var configurableLogger = loggerFactory.CreateLogger<ConfigurableOpenAIChatProvider>();

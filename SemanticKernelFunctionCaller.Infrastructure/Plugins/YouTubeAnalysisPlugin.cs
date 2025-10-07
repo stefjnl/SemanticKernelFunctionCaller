@@ -7,9 +7,6 @@ using System.Text.RegularExpressions;
 using YoutubeExplode;
 using YoutubeExplode.Common;
 using YoutubeExplode.Exceptions;
-using System.Linq;
-using YoutubeExplode.Videos;
-using YoutubeExplode.Videos.ClosedCaptions;
 
 namespace SemanticKernelFunctionCaller.Infrastructure.Plugins;
 
@@ -17,11 +14,11 @@ namespace SemanticKernelFunctionCaller.Infrastructure.Plugins;
 /// Semantic Kernel plugin for analyzing YouTube videos through transcript analysis.
 /// Enables natural language Q&A about video content without watching the entire video.
 /// </summary>
-public class YouTubeAnalysisPlugin
+public class YouTubeAnalysisPlugin(
+    IMemoryCache cache,
+    ILogger<YouTubeAnalysisPlugin> logger)
 {
-    private readonly YoutubeClient _youtube;
-    private readonly IMemoryCache _cache;
-    private readonly ILogger<YouTubeAnalysisPlugin> _logger;
+    private readonly YoutubeClient _youtube = new YoutubeClient();
 
     // Cache settings
     private const int MaxCachedTranscripts = 50;
@@ -30,15 +27,6 @@ public class YouTubeAnalysisPlugin
     // Chunking settings for long videos
     private const int MaxWordsPerChunk = 2000;
     private const int ChunkOverlapWords = 100;
-
-    public YouTubeAnalysisPlugin(
-        IMemoryCache cache,
-        ILogger<YouTubeAnalysisPlugin> logger)
-    {
-        _youtube = new YoutubeClient();
-        _cache = cache;
-        _logger = logger;
-    }
 
     /// <summary>
     /// Loads a YouTube video's full transcript for analysis.
@@ -52,7 +40,7 @@ public class YouTubeAnalysisPlugin
     {
         try
         {
-            _logger.LogInformation("Loading transcript for video: {VideoUrl}", videoUrl);
+            logger.LogInformation("Loading transcript for video: {VideoUrl}", videoUrl);
 
             // Extract video ID
             var videoId = ExtractVideoId(videoUrl);
@@ -63,9 +51,9 @@ public class YouTubeAnalysisPlugin
 
             // Check cache first
             var cacheKey = $"transcript_{videoId}";
-            if (_cache.TryGetValue(cacheKey, out string? cachedTranscript) && cachedTranscript != null)
+            if (cache.TryGetValue(cacheKey, out string? cachedTranscript) && cachedTranscript != null)
             {
-                _logger.LogInformation("Returning cached transcript for video: {VideoId}", videoId);
+                logger.LogInformation("Returning cached transcript for video: {VideoId}", videoId);
                 return cachedTranscript;
             }
 
@@ -128,20 +116,20 @@ public class YouTubeAnalysisPlugin
                 .SetSize(1)
                 .SetSlidingExpiration(CacheDuration);
 
-            _cache.Set(cacheKey, result, cacheOptions);
+            cache.Set(cacheKey, result, cacheOptions);
 
-            _logger.LogInformation("Successfully loaded transcript for video: {Title}", video.Title);
+            logger.LogInformation("Successfully loaded transcript for video: {Title}", video.Title);
 
             return result;
         }
         catch (VideoUnavailableException)
         {
-            _logger.LogWarning("Video unavailable: {VideoUrl}", videoUrl);
+            logger.LogWarning("Video unavailable: {VideoUrl}", videoUrl);
             return "❌ Video is unavailable. It may be private, deleted, age-restricted, or region-locked.";
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error loading video transcript: {VideoUrl}", videoUrl);
+            logger.LogError(ex, "Error loading video transcript: {VideoUrl}", videoUrl);
             return $"❌ Error loading video: {ex.Message}";
         }
     }
@@ -158,7 +146,7 @@ public class YouTubeAnalysisPlugin
     {
         try
         {
-            _logger.LogInformation("Searching video {VideoUrl} for: {Query}", videoUrl, searchQuery);
+            logger.LogInformation("Searching video {VideoUrl} for: {Query}", videoUrl, searchQuery);
 
             var videoId = ExtractVideoId(videoUrl);
             if (string.IsNullOrEmpty(videoId))
@@ -197,7 +185,7 @@ public class YouTubeAnalysisPlugin
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error searching video content");
+            logger.LogError(ex, "Error searching video content");
             return $"❌ Error searching video: {ex.Message}";
         }
     }
@@ -219,7 +207,7 @@ public class YouTubeAnalysisPlugin
             }
 
             var cacheKey = $"metadata_{videoId}";
-            if (_cache.TryGetValue(cacheKey, out string? cachedMetadata) && cachedMetadata != null)
+            if (cache.TryGetValue(cacheKey, out string? cachedMetadata) && cachedMetadata != null)
             {
                 return cachedMetadata;
             }
@@ -251,13 +239,13 @@ public class YouTubeAnalysisPlugin
                 .SetSize(1)
                 .SetSlidingExpiration(CacheDuration);
 
-            _cache.Set(cacheKey, resultString, cacheOptions);
+            cache.Set(cacheKey, resultString, cacheOptions);
 
             return resultString;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error fetching video metadata");
+            logger.LogError(ex, "Error fetching video metadata");
             return $"❌ Error fetching video metadata: {ex.Message}";
         }
     }
@@ -301,7 +289,7 @@ public class YouTubeAnalysisPlugin
     private async Task<string> GetRawTranscriptAsync(string videoId)
     {
         var cacheKey = $"raw_transcript_{videoId}";
-        if (_cache.TryGetValue(cacheKey, out string? cached) && cached != null)
+        if (cache.TryGetValue(cacheKey, out string? cached) && cached != null)
         {
             return cached;
         }
@@ -339,7 +327,7 @@ public class YouTubeAnalysisPlugin
                 .SetSize(1)
                 .SetSlidingExpiration(CacheDuration);
 
-            _cache.Set(cacheKey, result, cacheOptions);
+            cache.Set(cacheKey, result, cacheOptions);
 
             return result;
         }

@@ -21,17 +21,22 @@ public class ChatControllerTests
 {
     private readonly Mock<ISendChatMessageUseCase> _mockSendMessageUseCase;
     private readonly Mock<IStreamChatMessageUseCase> _mockStreamMessageUseCase;
+    private readonly Mock<IStreamWithToolsUseCase> _mockStreamWithToolsUseCase;
+    private readonly Mock<IGetAvailablePluginsUseCase> _mockGetAvailablePluginsUseCase;
     private readonly ChatController _controller;
 
     public ChatControllerTests()
     {
         _mockSendMessageUseCase = new Mock<ISendChatMessageUseCase>();
         _mockStreamMessageUseCase = new Mock<IStreamChatMessageUseCase>();
+        _mockStreamWithToolsUseCase = new Mock<IStreamWithToolsUseCase>();
+        _mockGetAvailablePluginsUseCase = new Mock<IGetAvailablePluginsUseCase>();
 
         _controller = new ChatController(
             _mockSendMessageUseCase.Object,
             _mockStreamMessageUseCase.Object,
-            new Mock<Microsoft.SemanticKernel.Kernel>().Object,
+            _mockStreamWithToolsUseCase.Object,
+            _mockGetAvailablePluginsUseCase.Object,
             NullLogger<ChatController>.Instance);
     }
 
@@ -354,6 +359,232 @@ public class ChatControllerTests
         // Assert
         mockResponse.Verify(r => r.Body.FlushAsync(It.IsAny<CancellationToken>()), Times.AtLeastOnce);
     }*/
+
+    #endregion
+
+    #region StreamWithTools Tests
+
+    [Fact]
+    public async Task StreamWithTools_SetsCorrectContentTypeAndHeaders()
+    {
+        // Arrange
+        var request = new ChatRequestDto
+        {
+            ProviderId = "OpenRouter",
+            ModelId = "gpt-3.5-turbo",
+            Messages = new List<MessageDto>
+            {
+                new() { Role = ChatRole.User, Content = "What time is it?" }
+            }
+        };
+
+        // Mock HttpContext and Response
+        var mockHttpContext = new Mock<HttpContext>();
+        var mockResponse = new Mock<HttpResponse>();
+        var mockResponseBody = new Mock<Stream>();
+
+        mockResponse.Setup(r => r.ContentType).Returns(() => "text/plain");
+        mockResponse.Setup(r => r.Headers).Returns(new HeaderDictionary());
+        mockResponse.Setup(r => r.Body).Returns(mockResponseBody.Object);
+        mockResponse.Setup(r => r.Body.FlushAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+        mockHttpContext.Setup(c => c.Response).Returns(mockResponse.Object);
+        mockHttpContext.Setup(c => c.RequestAborted).Returns(CancellationToken.None);
+
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = mockHttpContext.Object
+        };
+
+        _mockStreamWithToolsUseCase.Setup(x => x.ExecuteAsync(request, It.IsAny<CancellationToken>()))
+            .Returns(CreateEmptyAsyncEnumerable<ToolStreamingUpdate>());
+
+        // Act
+        await _controller.StreamWithTools(request);
+
+        // Assert
+        mockResponse.VerifySet(r => r.ContentType = "text/event-stream");
+        Assert.Equal("no-cache", mockResponse.Object.Headers.CacheControl);
+        Assert.Equal("keep-alive", mockResponse.Object.Headers.Connection);
+    }
+
+    [Fact]
+    public async Task StreamWithTools_WithValidRequest_CallsUseCaseExecuteAsync()
+    {
+        // Arrange
+        var request = new ChatRequestDto
+        {
+            ProviderId = "OpenRouter",
+            ModelId = "gpt-3.5-turbo",
+            Messages = new List<MessageDto>
+            {
+                new() { Role = ChatRole.User, Content = "What time is it?" }
+            }
+        };
+
+        // Mock HttpContext and Response
+        var mockHttpContext = new Mock<HttpContext>();
+        var mockResponse = new Mock<HttpResponse>();
+        var mockResponseBody = new Mock<Stream>();
+
+        mockResponse.Setup(r => r.ContentType).Returns(() => "text/plain");
+        mockResponse.Setup(r => r.Headers).Returns(new HeaderDictionary());
+        mockResponse.Setup(r => r.Body).Returns(mockResponseBody.Object);
+        mockResponse.Setup(r => r.Body.FlushAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+        mockHttpContext.Setup(c => c.Response).Returns(mockResponse.Object);
+        mockHttpContext.Setup(c => c.RequestAborted).Returns(CancellationToken.None);
+
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = mockHttpContext.Object
+        };
+
+        _mockStreamWithToolsUseCase.Setup(x => x.ExecuteAsync(request, It.IsAny<CancellationToken>()))
+            .Returns(CreateEmptyAsyncEnumerable<ToolStreamingUpdate>());
+
+        // Act
+        await _controller.StreamWithTools(request);
+
+        // Assert
+        _mockStreamWithToolsUseCase.Verify(x => x.ExecuteAsync(request, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task StreamWithTools_WhenUseCaseThrowsException_HandlesExceptionGracefully()
+    {
+        // Arrange
+        var request = new ChatRequestDto
+        {
+            ProviderId = "OpenRouter",
+            ModelId = "gpt-3.5-turbo",
+            Messages = new List<MessageDto>
+            {
+                new() { Role = ChatRole.User, Content = "What time is it?" }
+            }
+        };
+
+        var exceptionMessage = "Tools streaming failed";
+
+        // Create a real HttpContext with a mock response stream
+        var httpContext = new DefaultHttpContext();
+        var responseStream = new MemoryStream();
+        httpContext.Response.Body = responseStream;
+
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContext
+        };
+
+        var exception = new Exception(exceptionMessage);
+        _mockStreamWithToolsUseCase.Setup(x => x.ExecuteAsync(request, It.IsAny<CancellationToken>()))
+            .Throws(exception);
+
+        // Act
+        await _controller.StreamWithTools(request);
+
+        // Assert
+        // Verify that the response was properly configured
+        Assert.Equal("text/event-stream", httpContext.Response.ContentType);
+        Assert.Equal("no-cache", httpContext.Response.Headers["Cache-Control"]);
+        Assert.Equal("keep-alive", httpContext.Response.Headers["Connection"]);
+        
+        // Verify that the response stream has content (error was written)
+        responseStream.Position = 0;
+        using var reader = new StreamReader(responseStream);
+        var streamContent = reader.ReadToEnd();
+        Assert.NotEmpty(streamContent);
+        Assert.Contains("error", streamContent.ToLowerInvariant());
+    }
+
+    #endregion
+
+    #region GetAvailablePlugins Tests
+
+    [Fact]
+    public void GetAvailablePlugins_WithValidRequest_ReturnsOkResult_WithPlugins()
+    {
+        // Arrange
+        var expectedPlugins = new List<PluginInfoDto>
+        {
+            new()
+            {
+                PluginName = "TimePlugin",
+                FunctionName = "GetCurrentTime",
+                Description = "Gets the current time",
+                Parameters = new List<ParameterInfoDto>
+                {
+                    new() { Name = "timezone", Description = "Timezone", Type = "string", IsRequired = false }
+                }
+            }
+        };
+
+        _mockGetAvailablePluginsUseCase.Setup(x => x.Execute())
+            .Returns(expectedPlugins);
+
+        // Act
+        var result = _controller.GetAvailablePlugins();
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var actualPlugins = Assert.IsAssignableFrom<IEnumerable<PluginInfoDto>>(okResult.Value);
+        Assert.Single(actualPlugins);
+        
+        var plugin = actualPlugins.First();
+        Assert.Equal("TimePlugin", plugin.PluginName);
+        Assert.Equal("GetCurrentTime", plugin.FunctionName);
+        Assert.Equal("Gets the current time", plugin.Description);
+        Assert.Single(plugin.Parameters);
+    }
+
+    [Fact]
+    public void GetAvailablePlugins_CallsUseCaseExecute()
+    {
+        // Arrange
+        var expectedPlugins = new List<PluginInfoDto>();
+        _mockGetAvailablePluginsUseCase.Setup(x => x.Execute())
+            .Returns(expectedPlugins);
+
+        // Act
+        _controller.GetAvailablePlugins();
+
+        // Assert
+        _mockGetAvailablePluginsUseCase.Verify(x => x.Execute(), Times.Once);
+    }
+
+    [Fact]
+    public void GetAvailablePlugins_WhenUseCaseThrowsException_Returns500StatusCode_WithErrorMessage()
+    {
+        // Arrange
+        var exceptionMessage = "Plugin retrieval failed";
+        _mockGetAvailablePluginsUseCase.Setup(x => x.Execute())
+            .Throws(new Exception(exceptionMessage));
+
+        // Act
+        var result = _controller.GetAvailablePlugins();
+
+        // Assert
+        var statusCodeResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(500, statusCodeResult.StatusCode);
+        Assert.Contains(exceptionMessage, statusCodeResult.Value?.ToString());
+    }
+
+    [Fact]
+    public void GetAvailablePlugins_WithEmptyPlugins_ReturnsOkResult()
+    {
+        // Arrange
+        var expectedPlugins = new List<PluginInfoDto>();
+        _mockGetAvailablePluginsUseCase.Setup(x => x.Execute())
+            .Returns(expectedPlugins);
+
+        // Act
+        var result = _controller.GetAvailablePlugins();
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var actualPlugins = Assert.IsAssignableFrom<IEnumerable<PluginInfoDto>>(okResult.Value);
+        Assert.Empty(actualPlugins);
+    }
 
     #endregion
 

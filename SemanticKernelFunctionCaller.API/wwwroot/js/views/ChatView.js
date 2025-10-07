@@ -27,8 +27,8 @@ export class ChatView {
 
         providers.forEach(provider => {
             const option = document.createElement('option');
-            option.value = provider.id;
-            option.textContent = provider.displayName;
+            option.value = provider.Id || provider.id;
+            option.textContent = provider.DisplayName || provider.displayName;
             this.providerSelect.appendChild(option);
         });
     }
@@ -43,8 +43,8 @@ export class ChatView {
 
         models.forEach(model => {
             const option = document.createElement('option');
-            option.value = model.id;
-            option.textContent = model.displayName;
+            option.value = model.Id || model.id;
+            option.textContent = model.DisplayName || model.displayName;
             this.modelSelect.appendChild(option);
         });
     }
@@ -231,11 +231,11 @@ export class ChatView {
             
             const pluginName = document.createElement('div');
             pluginName.className = 'font-medium text-sm text-gray-800';
-            pluginName.textContent = `${plugin.plugin || plugin.Plugin}.${plugin.function || plugin.Function}`;
+            pluginName.textContent = `${plugin.PluginName || plugin.pluginName || plugin.plugin || plugin.Plugin}.${plugin.FunctionName || plugin.functionName || plugin.function || plugin.Function}`;
             
             const pluginDesc = document.createElement('div');
             pluginDesc.className = 'text-xs text-gray-600 mt-1';
-            pluginDesc.textContent = plugin.description || plugin.Description || 'No description available';
+            pluginDesc.textContent = plugin.Description || plugin.description || 'No description available';
             
             if (plugin.Parameters && plugin.Parameters.length > 0) {
                 const paramsElement = document.createElement('div');

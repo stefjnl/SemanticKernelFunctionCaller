@@ -1,20 +1,13 @@
-using SemanticKernelFunctionCaller.Application.Interfaces;
 using SemanticKernelFunctionCaller.Application.DTOs;
-using SemanticKernelFunctionCaller.Domain.Enums;
+using SemanticKernelFunctionCaller.Application.Interfaces;
 using SemanticKernelFunctionCaller.Domain.Entities;
+using SemanticKernelFunctionCaller.Domain.Enums;
 using System.Runtime.CompilerServices;
 
 namespace SemanticKernelFunctionCaller.Application.UseCases;
 
-public class StreamChatMessageUseCase : IStreamChatMessageUseCase
+public class StreamChatMessageUseCase(IProviderFactory providerFactory) : IStreamChatMessageUseCase
 {
-    private readonly IProviderFactory _providerFactory;
-
-    public StreamChatMessageUseCase(IProviderFactory providerFactory)
-    {
-        _providerFactory = providerFactory;
-    }
-
     public async IAsyncEnumerable<StreamingChatUpdate> ExecuteAsync(
         ChatRequestDto request,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -28,7 +21,7 @@ public class StreamChatMessageUseCase : IStreamChatMessageUseCase
         }).ToList();
 
         var providerType = Enum.Parse<ProviderType>(request.ProviderId);
-        var provider = _providerFactory.CreateProvider(providerType.ToString(), request.ModelId);
+        var provider = providerFactory.CreateProvider(providerType.ToString(), request.ModelId);
 
         await foreach (var content in provider.StreamMessageAsync(messages, cancellationToken))
         {

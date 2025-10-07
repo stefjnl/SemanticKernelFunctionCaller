@@ -1,21 +1,14 @@
-using SemanticKernelFunctionCaller.Application.Interfaces;
 using SemanticKernelFunctionCaller.Application.DTOs;
+using SemanticKernelFunctionCaller.Application.Interfaces;
 using SemanticKernelFunctionCaller.Domain.ValueObjects;
 
 namespace SemanticKernelFunctionCaller.Application.UseCases;
 
-public class GetAvailableProvidersUseCase : IGetAvailableProvidersUseCase
+public class GetAvailableProvidersUseCase(IProviderConfigurationReader providerReader) : IGetAvailableProvidersUseCase
 {
-    private readonly IProviderConfigurationReader _providerReader;
-
-    public GetAvailableProvidersUseCase(IProviderConfigurationReader providerReader)
-    {
-        _providerReader = providerReader;
-    }
-
     public IEnumerable<ProviderInfoDto> Execute()
     {
-        return _providerReader.GetProviders().Select(MapToDto);
+        return providerReader.GetProviders().Select(MapToDto);
     }
 
     private static ProviderInfoDto MapToDto(ProviderMetadata metadata)

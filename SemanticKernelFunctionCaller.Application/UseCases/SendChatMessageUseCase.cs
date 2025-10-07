@@ -1,19 +1,12 @@
-using SemanticKernelFunctionCaller.Application.Interfaces;
 using SemanticKernelFunctionCaller.Application.DTOs;
-using SemanticKernelFunctionCaller.Domain.Enums;
+using SemanticKernelFunctionCaller.Application.Interfaces;
 using SemanticKernelFunctionCaller.Domain.Entities;
+using SemanticKernelFunctionCaller.Domain.Enums;
 
 namespace SemanticKernelFunctionCaller.Application.UseCases;
 
-public class SendChatMessageUseCase : ISendChatMessageUseCase
+public class SendChatMessageUseCase(IProviderFactory providerFactory) : ISendChatMessageUseCase
 {
-    private readonly IProviderFactory _providerFactory;
-
-    public SendChatMessageUseCase(IProviderFactory providerFactory)
-    {
-        _providerFactory = providerFactory;
-    }
-
     public async Task<ChatResponseDto> ExecuteAsync(ChatRequestDto request)
     {
         // Map DTO to domain models
@@ -26,7 +19,7 @@ public class SendChatMessageUseCase : ISendChatMessageUseCase
         }).ToList();
 
         var providerType = Enum.Parse<ProviderType>(request.ProviderId);
-        var provider = _providerFactory.CreateProvider(providerType.ToString(), request.ModelId);
+        var provider = providerFactory.CreateProvider(providerType.ToString(), request.ModelId);
         var response = await provider.SendMessageAsync(messages);
         return MapToDto(response);
     }
