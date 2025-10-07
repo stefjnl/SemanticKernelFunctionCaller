@@ -223,11 +223,11 @@ export class ChatView {
         }
 
         const pluginsList = document.createElement('div');
-        pluginsList.className = 'space-y-2';
+        pluginsList.className = 'flex gap-2 overflow-x-auto';
 
         plugins.forEach(plugin => {
             const pluginElement = document.createElement('div');
-            pluginElement.className = 'p-2 bg-gray-50 rounded border border-gray-200';
+            pluginElement.className = 'p-2 bg-gray-50 rounded border border-gray-200 flex-shrink-0 w-40';
             
             const pluginName = document.createElement('div');
             pluginName.className = 'font-medium text-sm text-gray-800';
